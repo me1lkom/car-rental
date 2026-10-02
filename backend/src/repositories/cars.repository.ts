@@ -39,7 +39,7 @@ export async function findCars(filters: CarsFilter) {
     `;
 
     if (conditions.length > 0) {
-        query += ` WHERE deleted_at IS NULL AND ${conditions.join(' AND ')}`;
+        query += ` WHERE ${conditions.join(' AND ')}`;
     }
 
     const result = await pool.query(query, values);

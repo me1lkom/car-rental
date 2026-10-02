@@ -32,7 +32,7 @@ export async function getCars(req: Request, res: Response) {
     if (typeof year === 'string') {
         filters.year = Number(year);
 
-        if (!Number.isInteger(year)) {
+        if (!Number.isInteger(filters.year)) {
             return res.status(400).json({ error: 'Invalid year id' });
         }
     }
@@ -131,7 +131,7 @@ export async function deleteCar(req: Request, res: Response) {
     const car = await deleteCarService(id);
 
     if (!car) {
-        res.status(404).json({
+        return res.status(404).json({
             error: 'Car not found'
         });
     }
