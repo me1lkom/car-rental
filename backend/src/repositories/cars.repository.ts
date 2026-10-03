@@ -39,7 +39,7 @@ export async function findCars(filters: CarsFilter) {
     `;
 
     if (conditions.length > 0) {
-        query += ` WHERE ${conditions.join(' AND ')}`;
+        query += ` AND ${conditions.join(' AND ')}`;
     }
 
     const result = await pool.query(query, values);
