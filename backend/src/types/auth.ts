@@ -1,4 +1,4 @@
 export type AuthPayload = {
     user_id: number;
-    role: string;
+    session_id: number;
 };

@@ -152,25 +152,54 @@ export async function unblockUser(id: number) {
 }
 
 export async function changeUserPassword(id: number, passwordHash: string) {
+    const client = await pool.connect();
 
+    try {
+        await client.query('BEGIN');
+        const updatePasswordQuery = `
+            UPDATE users
+            SET password_hash = $2
+            WHERE user_id = $1 AND blocked_at IS NULL
+            RETURNING user_id
+        `;
+
+        const updatePasswordResult = await client.query(updatePasswordQuery, [id, passwordHash]);
+
+        if (updatePasswordResult.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return null;
+        }
+
+        const revokeSessionQuery = `
+            UPDATE refresh_sessions
+            SET revoked_at = NOW()
+            WHERE user_id = $1 AND expire_at > NOW()
+                AND revoked_at IS NULL
+        `;
+
+        const revokeSessionResult = await client.query(revokeSessionQuery, [id]);
+
+        await client.query('COMMIT');
+        return updatePasswordResult.rows[0];
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+
+}
+
+export async function returnPassword(id: number) {
     const query = `
-        UPDATE users u
-        SET password_hash = $2
-        FROM roles r
-        WHERE u.user_id = $1
-            AND u.role_id = r.role_id
-            AND u.blocked_at IS NULL
-        RETURNING
-            u.user_id,
-            u.name,
-            u.surname,
-            u.email,
-            u.phone,
-            r.name AS role,
-            u.created_at,
-            u.blocked_at
-    `
-    const result = await pool.query(query, [id, passwordHash])
+        SELECT 
+            user_id,
+            password_hash
+        FROM users
+        WHERE user_id = $1 AND blocked_at IS NULL
+    `;
+
+    const result = await pool.query(query, [id]);
 
     return result.rows[0];
 }
