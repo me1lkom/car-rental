@@ -1,9 +1,10 @@
 
 import type { NewUser, UpdateUser, NewUserRecord, PasswordChange } from '../schemas/users.schema.js';
-import { getUsers as getUsersRepository, createUser as createUserRepository, 
+import {
+    getUsers as getUsersRepository, createUser as createUserRepository,
     getUserById as getUserByIdRepository, updateUser as updateUserRepository,
     blockUser as blockUserRepository, unblockUser as unblockUserRepository,
-    changeUserPassword as changeUserPasswordRepository
+    changeUserPassword as changeUserPasswordRepository, returnPassword as returnPasswordRepository
 } from '../repositories/users.repository.js';
 import bcrypt from 'bcrypt';
 
@@ -12,10 +13,10 @@ export async function getUsers() {
 }
 
 export async function createUser(user: NewUser) {
-    
+
     const passwordHash = await bcrypt.hash(user.password, 12);
 
-    const { password, ...userData} = user;
+    const { password, ...userData } = user;
 
     const userRecord: NewUserRecord = {
         ...userData,
@@ -41,8 +42,39 @@ export async function unblockUser(id: number) {
     return await unblockUserRepository(id);
 }
 
-export async function changeUserPassword(id: number, newPassword: PasswordChange) {
-    const passwordHash = await bcrypt.hash(newPassword.password, 12);
+export async function changeUserPassword(id: number, password: PasswordChange) {
+    const userData = await returnPasswordRepository(id);
 
-    return await changeUserPasswordRepository(id, passwordHash)
+    if (!userData) {
+        return {
+            ok: false,
+            reason: 'USER_NOT_FOUND'
+        } as const;
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(password.currentPassword, userData.password_hash);
+
+    if (!isPasswordCorrect) {
+        return {
+            ok: false,
+            reason: 'WRONG_PASSWORD'
+        } as const;
+    }
+
+    const passwordHash = await bcrypt.hash(password.newPassword, 12);
+
+
+    const result = await changeUserPasswordRepository(id, passwordHash);
+
+    if (!result) {
+        return {
+            ok: false,
+            reason: 'USER_NOT_FOUND'
+        } as const;
+    }
+
+    return {
+        ok: true,
+        user: result
+    } as const;
 }

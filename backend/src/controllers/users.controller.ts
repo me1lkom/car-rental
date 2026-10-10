@@ -1,7 +1,8 @@
 import type { Request, Response } from "express";
-import { getUsers as getUserService, createUser as createUserService, getUserById as getUserByIdService, 
-        updateUser as updateUserService, blockUser as blockUserService, unblockUser as unblockUserService,
-        changeUserPassword as changeUserPasswordService
+import {
+    getUsers as getUserService, createUser as createUserService, getUserById as getUserByIdService,
+    updateUser as updateUserService, blockUser as blockUserService, unblockUser as unblockUserService,
+    changeUserPassword as changeUserPasswordService
 } from '../services/users.service.js'
 import { createUserSchema, updateUserSchema, passwordChangeSchema } from "../schemas/users.schema.js";
 
@@ -72,7 +73,7 @@ export async function updateUser(req: Request, res: Response) {
 
     const user = await updateUserService(id, result.data);
 
-    if (!user) { 
+    if (!user) {
         return res.status(404).json({
             error: 'User not found'
         });
@@ -122,15 +123,15 @@ export async function unblockUser(req: Request, res: Response) {
     res.status(200).json(user);
 }
 
-export async function  changeUserPassword(req: Request, res: Response) {
+export async function changeUserPassword(req: Request, res: Response) {
     const id = Number(req.params.id);
 
-    const newPassword = passwordChangeSchema.safeParse(req.body);
+    let result = passwordChangeSchema.safeParse(req.body);
 
-    if (!newPassword.success) {
+    if (!result.success) {
         return res.status(400).json({
             error: 'Invalid user data',
-            details: newPassword.error.issues
+            details: result.error?.issues
         });
     }
 
@@ -139,14 +140,25 @@ export async function  changeUserPassword(req: Request, res: Response) {
             error: 'Invalid user id'
         });
     }
-    
-    const user = await changeUserPasswordService(id, newPassword.data);
 
-    if(!user) {
-        return res.status(404).json({
-            error: 'User not found'
-        });
+    const changeeResult = await changeUserPasswordService(id, result.data);
+
+    if (!changeeResult.ok) {
+        if (changeeResult.reason === 'USER_NOT_FOUND') {
+            return res.status(404).json({
+                error: 'User not found'
+            });
+        }
+
+        if (changeeResult.reason === 'WRONG_PASSWORD') {
+            return res.status(400).json({
+                error: 'Incorrect current password'
+            });
+        }
     }
 
-    res.status(200).json(user);
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
+
+    return res.sendStatus(204);
 }

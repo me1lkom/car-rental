@@ -57,3 +57,11 @@ CREATE TABLE IF NOT EXISTS payments (
     status VARCHAR(30) NOT NULL,
     paid_at TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS refresh_sessions (
+    session_id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(user_id),
+    refresh_token_hash VARCHAR(64) UNIQUE NOT NULL,
+    expire_at TIMESTAMP NOT NULL,
+    revoked_at TIMESTAMP
+)
