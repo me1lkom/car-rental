@@ -23,7 +23,37 @@ export async function createUser(user: NewUser) {
         password_hash: passwordHash
     };
 
-    return await createUserRepository(userRecord);
+    try {
+        const createdUser = await createUserRepository(userRecord);
+
+        return {
+            ok: true,
+            user: createdUser
+        } as const;
+    } catch (error: unknown) {
+        if (
+            error instanceof Error &&
+            'code' in error &&
+            error.code === '23505' &&
+            'constraint' in error
+        ) {
+            if (error.constraint === 'users_email_key') {
+                return {
+                    ok: false,
+                    reason: 'EMAIL_ALREADY_EXISTS'
+                } as const;
+            }
+
+            if (error.constraint === 'users_phone_key') {
+                return {
+                    ok: false,
+                    reason: 'PHONE_ALREADY_EXISTS'
+                } as const;
+            }
+        }
+
+        throw error;
+    }
 }
 
 export async function getUserById(id: number) {

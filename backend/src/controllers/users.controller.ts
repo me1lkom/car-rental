@@ -22,9 +22,17 @@ export async function createUser(req: Request, res: Response) {
         });
     }
 
-    const user = await createUserService(result.data);
+    const creation = await createUserService(result.data);
 
-    res.status(201).json(user);
+    if (!creation.ok) {
+        return res.status(409).json({
+            error: creation.reason === 'EMAIL_ALREADY_EXISTS'
+                ? 'Email already registered'
+                : 'Phone already registered'
+        });
+    }
+
+    return res.status(201).json(creation.user);
 }
 
 export async function getUserById(req: Request, res: Response) {
