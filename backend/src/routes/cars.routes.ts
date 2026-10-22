@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { getCars, createCar, getCarById, updateCar, 
-    temporaryFindAllCars, deleteCar, restoreCar } from '../controllers/cars.controller.js';
+    temporaryFindAllCars, deleteCar, restoreCar,
+    getCarAttributes
+} from '../controllers/cars.controller.js';
 import { checkAuth } from '../middleware/authenticate.js';
 import { checkRole } from '../middleware/authorize.js';
 
@@ -12,6 +14,8 @@ router.get('/', getCars);
 router.get('/temporaryAllCars', checkAuth, checkRole('admin'), temporaryFindAllCars);
 
 router.post('/', checkAuth, checkRole('manager', 'admin'), createCar);
+
+router.get('/car-attributes', getCarAttributes)
 
 router.get('/:id', getCarById);
 

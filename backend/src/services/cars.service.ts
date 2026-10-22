@@ -1,14 +1,10 @@
 import { findCars,  createCar as createCarRepository, findCarsById, 
     updateCar as updateCarRepository, temporaryFindAllCars as temporaryFindAllCarsRepository, 
-    deleteCar as deleteCarRepository, restoreCar as restoreCarRepository} from '../repositories/cars.repository.js';
-import type { NewCar, UpdateCar } from '../schemas/cars.schema.js';
+    deleteCar as deleteCarRepository, restoreCar as restoreCarRepository, 
+    getCarAttributes as getCarAttributesRepository
+} from '../repositories/cars.repository.js';
+import type { NewCar, UpdateCar, CarsFilter } from '../schemas/cars.schema.js';
 
-type CarsFilter = {
-    brand?: string;
-    model?: string;
-    year?: number;
-    status?: string;
-};
 
 export async function getCars(filters: CarsFilter) {
     return await findCars(filters);
@@ -40,3 +36,6 @@ export async function restoreCar(id: number) {
     return await restoreCarRepository(id);
 }
 
+export async function getCarAttributes() {
+    return await getCarAttributesRepository()
+}

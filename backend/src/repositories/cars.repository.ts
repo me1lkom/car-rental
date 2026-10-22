@@ -1,51 +1,58 @@
 import pool from '../db/database.js';
-import type { NewCar, UpdateCar } from '../schemas/cars.schema.js';
+import type { NewCar, UpdateCar, CarsFilter } from '../schemas/cars.schema.js';
 
-
-type CarsFilter = {
-    brand?: string;
-    model?: string;
-    year?: number;
-    status?: string;
-};
 
 export async function findCars(filters: CarsFilter) {
-    const conditions: string[] = [];
-    const values: unknown[] = [];
+    const conditions: string[] = ['c.deleted_at IS NULL'];
+    const values: (string | number)[] = [];
 
-    if (filters.brand) {
-        conditions.push(`brand = $${values.length + 1}`);
-        values.push(filters.brand);
+    function addFilter(column: string, value?: string | number) {
+        if (value === undefined) return;
+
+        values.push(value);
+        conditions.push(`${column} = $${values.length}`);
     }
 
-    if (filters.model) {
-        conditions.push(`model = $${values.length + 1}`);
-        values.push(filters.model);
-    }
+    addFilter('c.brand', filters.brand);
+    addFilter('c.model', filters.model);
+    addFilter('c.year', filters.year);
+    addFilter('c.status', filters.status);
 
-    if (filters.year) {
-        conditions.push(`year = $${values.length + 1}`);
-        values.push(filters.year);
-    }
+    addFilter('c.body_type_id', filters.body_type_id);
+    addFilter('c.drive_type_id', filters.drive_type_id);
+    addFilter('c.rental_class_id', filters.rental_class_id);
+    addFilter('c.transmission_id', filters.transmission_id);
+    addFilter('c.fuel_type_id', filters.fuel_type_id);
+    addFilter('c.seats', filters.seats);
+    addFilter('c.doors', filters.doors);
 
-    if (filters.status) {
-        conditions.push(`status = $${values.length + 1}`);
-        values.push(filters.status);
-    }
-
-    let query = `
-        SELECT * FROM cars
-        WHERE deleted_at IS NULL
+    const query = `
+        SELECT
+            c.*,
+            bt.name AS body_type_name,
+            dt.name AS drive_type_name,
+            rc.name AS rental_class_name,
+            t.name AS transmission_name,
+            ft.name AS fuel_type_name
+        FROM cars AS c
+        LEFT JOIN body_types AS bt
+            ON c.body_type_id = bt.body_type_id
+        LEFT JOIN drive_types AS dt
+            ON c.drive_type_id = dt.drive_type_id
+        LEFT JOIN rental_classes AS rc
+            ON c.rental_class_id = rc.rental_class_id
+        LEFT JOIN transmissions AS t
+            ON c.transmission_id = t.transmission_id
+        LEFT JOIN fuel_types AS ft
+            ON c.fuel_type_id = ft.fuel_type_id
+        WHERE ${conditions.join(' AND ')}
     `;
-
-    if (conditions.length > 0) {
-        query += ` AND ${conditions.join(' AND ')}`;
-    }
 
     const result = await pool.query(query, values);
 
     return result.rows;
 }
+
 
 export async function createCar(car: NewCar) {
     const result = await pool.query(
@@ -57,9 +64,20 @@ export async function createCar(car: NewCar) {
             image_url,
             description,
             price_per_day,
-            status
+            status,
+            body_type_id,
+            drive_type_id,
+            rental_class_id,
+            transmission_id,
+            fuel_type_id,
+            seats,
+            doors
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES (
+            $1, $2, $3, $4, $5,
+            $6, $7, $8, $9, $10,
+            $11, $12, $13, $14, $15
+        )
         RETURNING *`,
         [
             car.license_plate,
@@ -69,7 +87,14 @@ export async function createCar(car: NewCar) {
             car.image_url,
             car.description,
             car.price_per_day,
-            car.status
+            car.status,
+            car.body_type_id,
+            car.drive_type_id,
+            car.rental_class_id,
+            car.transmission_id,
+            car.fuel_type_id,
+            car.seats,
+            car.doors
         ]
     );
 
@@ -78,7 +103,24 @@ export async function createCar(car: NewCar) {
 
 export async function findCarsById(id: number) {
     const query = `
-        SELECT * FROM cars
+        SELECT 
+            c.*,
+            bt.name AS body_type_name,
+            dt.name AS drive_type_name,
+            rc.name AS rental_class_name,
+            t.name AS transmission_name,
+            ft.name AS fuel_type_name
+        FROM cars AS c
+        LEFT JOIN body_types AS bt
+            ON c.body_type_id = bt.body_type_id
+        LEFT JOIN drive_types AS dt
+            ON c.drive_type_id = dt.drive_type_id
+        LEFT JOIN rental_classes AS rc
+            ON c.rental_class_id = rc.rental_class_id
+        LEFT JOIN transmissions AS t
+            ON c.transmission_id = t.transmission_id
+        LEFT JOIN fuel_types AS ft
+            ON c.fuel_type_id = ft.fuel_type_id
         WHERE car_id = $1 AND deleted_at IS NULL
     `
 
@@ -141,4 +183,28 @@ export async function restoreCar(id: number) {
     const result = await pool.query(query, [id])
 
     return result.rows[0];
+}
+
+export async function getCarAttributes() {
+    const [
+        bodyTypes,
+        driveTypes,
+        rentalClasses,
+        transmissions,
+        fuelTypes
+    ] = await Promise.all([
+        pool.query('SELECT * FROM body_types ORDER BY name'),
+        pool.query('SELECT * FROM drive_types ORDER BY name'),
+        pool.query('SELECT * FROM rental_classes ORDER BY name'),
+        pool.query('SELECT * FROM transmissions ORDER BY name'),
+        pool.query('SELECT * FROM fuel_types ORDER BY name')
+    ]);
+
+    return {
+        body_types: bodyTypes.rows,
+        drive_types: driveTypes.rows,
+        rental_classes: rentalClasses.rows,
+        transmissions: transmissions.rows,
+        fuel_types: fuelTypes.rows
+    };
 }
