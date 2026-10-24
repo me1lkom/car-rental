@@ -208,3 +208,22 @@ export async function getCarAttributes() {
         fuel_types: fuelTypes.rows
     };
 }
+
+export async function findCarUnavailablePeriods(carId: number) {
+    const query = `
+        SELECT 
+            (r.start_date - 1)::text AS start_date,
+            (r.end_date + 1)::text AS end_date
+        FROM rentals AS r
+        JOIN rental_statuses AS rs 
+            ON r.status_id = rs.status_id
+        WHERE r.car_id = $1 AND (rs.code IN ('pending', 'confirmed', 'active') OR (
+            rs.code = 'pending_payment' AND r.hold_expires_at > NOW()
+        ))
+        ORDER BY r.start_date;
+    `
+
+    const result = await pool.query(query, [carId])
+
+    return result.rows;
+}

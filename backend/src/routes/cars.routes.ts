@@ -1,7 +1,14 @@
 import { Router } from 'express';
-import { getCars, createCar, getCarById, updateCar, 
-    temporaryFindAllCars, deleteCar, restoreCar,
-    getCarAttributes
+import { 
+    getCars, 
+    createCar, 
+    getCarById, 
+    updateCar, 
+    temporaryFindAllCars, 
+    deleteCar, 
+    restoreCar,
+    getCarAttributes, 
+    findCarUnavaliblePeriods
 } from '../controllers/cars.controller.js';
 import { checkAuth } from '../middleware/authenticate.js';
 import { checkRole } from '../middleware/authorize.js';
@@ -25,5 +32,7 @@ router.patch('/:id', checkAuth, checkRole('manager', 'admin'),  updateCar);
 router.delete('/:id', checkAuth, checkRole('admin'),  deleteCar)
 
 router.patch('/:id/restore', checkAuth, checkRole('admin'), restoreCar)
+
+router.get('/:id/availability', findCarUnavaliblePeriods)
 
 export default router;

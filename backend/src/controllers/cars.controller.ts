@@ -1,9 +1,14 @@
 import type { Request, Response } from 'express';
 import {
-    getCars as getCarsService, createCar as createCarService,
-    getCarById as getCarByIdService, updateCar as updateCarService,
-    temporaryFindAllCars as temporaryFindAllCarsService, deleteCar as deleteCarService,
-    restoreCar as restoreCarService, getCarAttributes as getCarAttributesService
+    getCars as getCarsService, 
+    createCar as createCarService,
+    getCarById as getCarByIdService, 
+    updateCar as updateCarService,
+    temporaryFindAllCars as temporaryFindAllCarsService, 
+    deleteCar as deleteCarService,
+    restoreCar as restoreCarService, 
+    getCarAttributes as getCarAttributesService,
+    findCarUnavailablePeriods as findCarUnavailablePeriodsService
 } from '../services/cars.service.js';
 import { createCarSchema, updateCarSchema, carsFilterSchema } from '../schemas/cars.schema.js';
 
@@ -142,4 +147,27 @@ export async function getCarAttributes(req: Request, res: Response) {
     const carAttributes = await getCarAttributesService();
 
     res.status(200).json(carAttributes)
+}
+
+export async function findCarUnavaliblePeriods(req: Request, res: Response) {
+    const id = Number(req.params.id)
+
+    if (!Number.isInteger(id) || id <= 0) {
+        return res.status(400).json({
+            error: 'Invalid car id'
+        });
+    }
+
+    const result = await findCarUnavailablePeriodsService(id);
+
+    if (!result.ok) {
+        return res.status(404).json({
+            error: 'Car not found'
+        });
+    }
+
+    res.status(200).json({
+        car_id: id,
+        unavailable_periods: result.periods
+    });
 }
