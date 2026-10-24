@@ -1,12 +1,19 @@
 
 import type { NewUser, UpdateUser, NewUserRecord, PasswordChange } from '../schemas/users.schema.js';
 import {
-    getUsers as getUsersRepository, createUser as createUserRepository,
-    getUserById as getUserByIdRepository, updateUser as updateUserRepository,
-    blockUser as blockUserRepository, unblockUser as unblockUserRepository,
-    changeUserPassword as changeUserPasswordRepository, returnPassword as returnPasswordRepository
+    getUsers as getUsersRepository, 
+    createUser as createUserRepository,
+    getUserById as getUserByIdRepository, 
+    updateUser as updateUserRepository,
+    blockUser as blockUserRepository, 
+    deleteSession as deleteSessionRepository,
+    unblockUser as unblockUserRepository,
+    changeUserPassword as changeUserPasswordRepository, 
+    returnPassword as returnPasswordRepository
 } from '../repositories/users.repository.js';
 import bcrypt from 'bcrypt';
+import { withTransaction } from '../db/transaction.js';
+
 
 export async function getUsers() {
     return await getUsersRepository();
@@ -65,7 +72,24 @@ export async function updateUser(id: number, updates: UpdateUser) {
 }
 
 export async function blockUser(id: number) {
-    return await blockUserRepository(id);
+    return withTransaction(async (client) => {
+        const blockUser = await blockUserRepository(id, client);
+        if (!blockUser) {
+            return {
+                ok: false,
+                reason: 'INVALID_USER_BLOCK'
+            } as const;
+        };
+
+        await deleteSessionRepository(id, client);
+
+        return {
+            ok: true,
+            user: blockUser
+        } as const;
+
+    })
+
 }
 
 export async function unblockUser(id: number) {
