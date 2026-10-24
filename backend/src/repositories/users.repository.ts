@@ -1,3 +1,4 @@
+import type { PoolClient } from 'pg';
 import pool from '../db/database.js';
 import type { UpdateUser, NewUserRecord } from '../schemas/users.schema.js';
 
@@ -102,7 +103,10 @@ export async function updateUser(id: number, updates: UpdateUser) {
     return result.rows[0];
 }
 
-export async function blockUser(id: number) {
+export async function blockUser(
+    id: number,
+    client: PoolClient
+) {
     const query = `
         UPDATE users u
         SET blocked_at = CURRENT_TIMESTAMP
@@ -121,7 +125,7 @@ export async function blockUser(id: number) {
             u.blocked_at
     `;
 
-    const result = await pool.query(query, [id])
+    const result = await client.query(query, [id])
 
     return result.rows[0];
 }
@@ -202,4 +206,16 @@ export async function returnPassword(id: number) {
     const result = await pool.query(query, [id]);
 
     return result.rows[0];
+}
+
+export async function deleteSession(
+    userId: number,
+    client: PoolClient
+) {
+    const query = `
+        DELETE FROM refresh_sessions
+        WHERE user_id = $1
+    `
+
+    await client.query(query, [userId])
 }

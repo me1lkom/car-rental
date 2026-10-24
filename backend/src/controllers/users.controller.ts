@@ -1,7 +1,11 @@
 import type { Request, Response } from "express";
 import {
-    getUsers as getUserService, createUser as createUserService, getUserById as getUserByIdService,
-    updateUser as updateUserService, blockUser as blockUserService, unblockUser as unblockUserService,
+    getUsers as getUserService,
+    createUser as createUserService,
+    getUserById as getUserByIdService,
+    updateUser as updateUserService,
+    blockUser as blockUserService,
+    unblockUser as unblockUserService,
     changeUserPassword as changeUserPasswordService
 } from '../services/users.service.js'
 import { createUserSchema, updateUserSchema, passwordChangeSchema } from "../schemas/users.schema.js";
@@ -100,15 +104,17 @@ export async function blockUser(req: Request, res: Response) {
         });
     }
 
-    const user = await blockUserService(id);
+    const result = await blockUserService(id);
 
-    if (!user) {
-        return res.status(404).json({
-            error: 'User not found'
-        });
+    if (!result.ok) {
+        if (result.reason === 'INVALID_USER_BLOCK') {
+            return res.status(404).json({
+                error: 'User not found'
+            });
+        }
     }
 
-    res.status(200).json(user);
+    res.status(200).json(result.user);
 }
 
 export async function unblockUser(req: Request, res: Response) {
