@@ -1,14 +1,11 @@
-import { findCars,  createCar as createCarRepository, findCarsById, 
-    updateCar as updateCarRepository, temporaryFindAllCars as temporaryFindAllCarsRepository, 
-    deleteCar as deleteCarRepository, restoreCar as restoreCarRepository} from '../repositories/cars.repository.js';
-import type { NewCar, UpdateCar } from '../schemas/cars.schema.js';
+import {
+    findCars, createCar as createCarRepository, findCarsById,
+    updateCar as updateCarRepository, temporaryFindAllCars as temporaryFindAllCarsRepository,
+    deleteCar as deleteCarRepository, restoreCar as restoreCarRepository,
+    getCarAttributes as getCarAttributesRepository, findCarUnavailablePeriods as findCarUnavailablePeriodsRepository
+} from '../repositories/cars.repository.js';
+import type { NewCar, UpdateCar, CarsFilter } from '../schemas/cars.schema.js';
 
-type CarsFilter = {
-    brand?: string;
-    model?: string;
-    year?: number;
-    status?: string;
-};
 
 export async function getCars(filters: CarsFilter) {
     return await findCars(filters);
@@ -40,3 +37,25 @@ export async function restoreCar(id: number) {
     return await restoreCarRepository(id);
 }
 
+export async function getCarAttributes() {
+    return await getCarAttributesRepository();
+}
+
+export async function findCarUnavailablePeriods(id: number) {
+
+    const car = await getCarById(id);
+    
+    if(!car) {
+        return {
+            ok: false,
+            reason: 'CAR_NOT_FOUND'
+        } as const;
+    }
+
+    const periods = await findCarUnavailablePeriodsRepository(id);
+
+    return {
+        ok: true,
+        periods
+    } as const;
+}

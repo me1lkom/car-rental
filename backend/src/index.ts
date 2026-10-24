@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import carsRouter from './routes/cars.routes.js';
 import userRouter from './routes/users.routes.js'
 import authUsers from './routes/auth.routes.js';
+import rentalsRouter from './routes/rentals.routes.js';
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use('/users', userRouter);
 
 app.use('/auth', authUsers)
 
+app.use('/rentals', rentalsRouter)
 
 app.listen(3000, () => {
     console.log('Server started on http://localhost:3000');

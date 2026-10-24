@@ -1,5 +1,7 @@
 import pg from 'pg';
 
+pg.types.setTypeParser(pg.types.builtins.DATE, value => value);
+
 const { Pool } = pg;
 
 const pool = new Pool({
