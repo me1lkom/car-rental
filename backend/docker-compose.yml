@@ -37,8 +37,32 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/cars"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
     command: sh -c "npm run migrate -- up && node dist/index.js"
+
+  smoke-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.smoke
+    
+    environment:
+      API_BASE_URL: http://backend:3000
+      SMOKE_EMAIL: ${SMOKE_EMAIL:?SMOKE_EMAIL is required}
+      SMOKE_PASSWORD: ${SMOKE_PASSWORD:?SMOKE_PASSWORD is required}
+
+    depends_on:
+      backend:
+        condition: service_healthy
+    
+    command: npm run test:smoke
+
+    restart: "no"
 
   frontend: 
     build:
