@@ -1,4 +1,6 @@
 import express from 'express';
+import { pinoHttp } from 'pino-http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import 'dotenv/config';
 import cookieParser from 'cookie-parser';
 import carsRouter from './routes/cars.routes.js';
@@ -8,6 +10,24 @@ import rentalsRouter from './routes/rentals.routes.js';
 
 const app = express();
 
+app.use(pinoHttp({
+    wrapSerializers: false,
+
+    serializers: {
+        req(req: IncomingMessage) {
+            return {
+                method: req.method,
+                url: req.url?.split('?')[0]
+            };
+        },
+
+        res(res: ServerResponse) {
+            return {
+                statusCode: res.statusCode
+            };
+        }
+    }
+}));
 app.use(express.json());
 app.use(cookieParser()); 
 
