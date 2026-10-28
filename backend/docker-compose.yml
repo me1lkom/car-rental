@@ -37,9 +37,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    
+
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/cars"]
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/cars" ]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -50,7 +50,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.smoke
-    
+
     environment:
       API_BASE_URL: http://backend:3000
       SMOKE_EMAIL: ${SMOKE_EMAIL:?SMOKE_EMAIL is required}
@@ -59,12 +59,12 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    
+
     command: npm run test:smoke
 
     restart: "no"
 
-  frontend: 
+  frontend:
     build:
       context: ../frontend
       dockerfile: Dockerfile
@@ -75,5 +75,52 @@ services:
     depends_on:
       - backend
 
+  loki:
+    image: grafana/loki:3.7.0
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+    - ./observability/loki/loki-config.yaml:/etc/loki/config.yaml:ro
+    - loki_data:/tmp/loki
+
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3100/ready" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+    command: -config.file=/etc/loki/config.yaml
+
+  alloy:
+    image: grafana/alloy:latest
+    ports:
+      - "127.0.0.1:12345:12345"
+    volumes:
+      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: 
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:12.4.11
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Password is required}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - loki
+
+
 volumes:
   postgres_data:
+  loki_data:
+  alloy_data:
+  grafana_data:
