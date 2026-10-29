@@ -6,6 +6,7 @@ import { Car } from "./pages/Car"
 import { Booking } from "./pages/Booking"
 import { Done } from "./pages/Done"
 import { Account } from "./pages/Account"
+import { Admin } from "./pages/Admin"
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
       <Route path="/booking/:id" element={<Booking />} />
       <Route path="/done" element={<Done />} />
       <Route path="/account" element={<Account />} />
+      <Route path="/admin" element={<Admin />} />
     </Routes>
   )
 }

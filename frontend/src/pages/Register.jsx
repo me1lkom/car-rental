@@ -23,17 +23,15 @@ export function Register() {
   return (
     <>
       <Header />
-      <main className="page split">
-        <section>
-          <img className="side-photo" src="/photos/eclass.jpg" alt="Автомобиль VELA" />
+      <main className="page auth">
+        <img src="/photos/eclass.jpg" alt="Автомобиль VELA" />
+        <form className="panel" onSubmit={onSubmit}>
           <p className="eyebrow">Регистрация</p>
           <h1>Создайте аккаунт за минуту</h1>
-          <p className="lead">Повторное бронирование без повторного ввода данных.</p>
-        </section>
-        <form className="panel" onSubmit={onSubmit}>
-          <h2>Создать аккаунт</h2>
-          <label>Имя<input name="name" required /></label>
-          <label>Фамилия<input name="surname" required /></label>
+          <div className="two">
+            <label>Имя<input name="name" required /></label>
+            <label>Фамилия<input name="surname" required /></label>
+          </div>
           <label>Телефон<input name="phone" required placeholder="+79990000000" /></label>
           <label>Почта<input name="email" type="email" required /></label>
           <label>Пароль<input name="password" type="password" minLength={8} required /></label>

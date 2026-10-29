@@ -1,38 +1,30 @@
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { Header } from "../components/Header"
-import { formatPrice } from "../api"
+import { carName, formatPrice, rentalStatus } from "../api"
 
 export function Done() {
-  const order = JSON.parse(localStorage.getItem("vela-last") || "null")
-  if (!order) {
+  const rental = useLocation().state?.rental
+  const car = useLocation().state?.car
+  if (!rental) {
     return (
       <>
         <Header />
-        <main className="page"><h1>Заявок нет</h1><Link to="/">В каталог</Link></main>
+        <main className="page"><h1>Заявки нет</h1><Link to="/">В каталог</Link></main>
       </>
     )
   }
-  const car = null
   return (
     <>
       <Header />
       <main className="page">
-        <p className="eyebrow">Бронирование подтверждено</p>
-        <h1>{order.id}</h1>
-        <article className="panel row">
-          {car && <img className="thumb" src={car.image} alt={order.carName} />}
-          <div>
-            <h2>{order.carName}</h2>
-            <p>{order.start} — {order.end}</p>
-            <p>{order.days} дн. · {formatPrice(order.total)}</p>
-            <p className="spec">{order.paid ? "Предоплата отмечена" : "Предоплата не отмечена"}</p>
-          </div>
+        <p className="eyebrow">Заявка создана</p>
+        <h1>VELA-{rental.rental_id}</h1>
+        <article className="panel">
+          <h2>{carName(car)}</h2>
+          <p>{rental.start_date} — {rental.end_date}</p>
+          <p>{formatPrice(rental.total_price)}</p>
+          <p className="spec">{rentalStatus(rental)}. Оплатите в течение 15 минут, иначе даты освободятся.</p>
         </article>
-        <div className="steps">
-          <article className="step"><span>01</span><h3>Подготовим автомобиль</h3></article>
-          <article className="step"><span>02</span><h3>Напомним за сутки</h3></article>
-          <article className="step"><span>03</span><h3>Ключи по паспорту</h3></article>
-        </div>
         <Link className="btn" to="/account">Открыть кабинет</Link>
       </main>
     </>

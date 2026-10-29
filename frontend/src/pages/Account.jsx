@@ -1,30 +1,24 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import toast from "react-hot-toast"
-import { LogOut } from "lucide-react"
 import { Header } from "../components/Header"
-import { api, clearUser, formatPrice, readOrders, saveUser } from "../api"
+import { api, carImage, carName, clearUser, formatPrice, rentalStatus, saveUser } from "../api"
 
 export function Account() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
-  const orders = readOrders()
+  const [orders, setOrders] = useState([])
+  const [tab, setTab] = useState("orders")
 
   useEffect(() => {
     api("/auth/me")
-      .then((profile) => {
-        saveUser(profile)
-        setUser(profile)
-      })
+      .then((profile) => { saveUser(profile); setUser(profile) })
       .catch(() => navigate("/login"))
+    api("/rentals/my").then(setOrders).catch(() => setOrders([]))
   }, [])
 
   async function logout() {
-    try {
-      await api("/auth/logout", "POST")
-    } catch {
-      // сервер всё равно чистит cookies
-    }
+    try { await api("/auth/logout", "POST") } catch {}
     clearUser()
     toast("Вы вышли")
     navigate("/login")
@@ -35,30 +29,63 @@ export function Account() {
   return (
     <>
       <Header />
-      <main className="page account">
-        <aside className="panel">
+      <main className="page cabinet">
+        <aside className="panel side">
+          <div className="avatar">{user.name?.[0]}</div>
           <h2>{user.name} {user.surname}</h2>
           <p className="spec">{user.email}</p>
           <p className="spec">{user.phone}</p>
-          <button className="btn btn-ghost" onClick={logout}><LogOut size={16} /> Выйти</button>
+          <nav>
+            <button className={tab === "orders" ? "on" : ""} onClick={() => setTab("orders")}>Заявки</button>
+            <button className={tab === "profile" ? "on" : ""} onClick={() => setTab("profile")}>Профиль</button>
+          </nav>
+          <button className="btn btn-ghost" onClick={logout}>Выйти</button>
         </aside>
-        <section>
-          <p className="eyebrow">Личный кабинет</p>
-          <h1>Здравствуйте, {user.name}</h1>
-          <p className="lead">Заявки и статус предоплаты.</p>
-          {orders.length === 0 && <p>Заявок пока нет.</p>}
-          <div className="list">
-            {orders.map((order) => (
-              <article key={order.id} className="panel">
-                <p className="tag">{order.id}</p>
-                <h3>{order.carName}</h3>
-                <p>{order.start} — {order.end} · {order.days} дн.</p>
-                <p>{formatPrice(order.total)}</p>
+        {tab === "orders" ? (
+          <section>
+            <div className="section-head">
+              <h1>Мои заявки</h1>
+              <p className="spec">{orders.length} на сервере</p>
+            </div>
+            {orders.length === 0 && (
+              <article className="panel empty">
+                <h2>Заявок пока нет</h2>
+                <p className="lead">Выберите машину в каталоге и отправьте заявку.</p>
+                <Link className="btn" to="/">Найти автомобиль</Link>
               </article>
-            ))}
-          </div>
-          <Link className="btn" to="/">Новая заявка</Link>
-        </section>
+            )}
+            <div className="list">
+              {orders.map((order) => (
+                <article key={order.rental_id} className="order">
+                  <img src={carImage(order.car)} alt={carName(order.car)} />
+                  <div>
+                    <p className="tag">VELA-{order.rental_id}</p>
+                    <h3>{carName(order.car)}</h3>
+                    <p>{order.start_date} — {order.end_date}</p>
+                    <p className="spec">{rentalStatus(order)}</p>
+                  </div>
+                  <div className="order-side">
+                    <b>{formatPrice(order.total_price)}</b>
+                    <Link className="btn btn-ghost" to={"/cars/" + (order.car?.car_id || order.car_id)}>К машине</Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section>
+            <h1>Профиль</h1>
+            <article className="panel profile-card">
+              <div className="avatar big">{user.name?.[0]}</div>
+              <div>
+                <h2>{user.name} {user.surname}</h2>
+                <p>Почта: {user.email}</p>
+                <p>Телефон: {user.phone}</p>
+                <p>Роль: {user.role}</p>
+              </div>
+            </article>
+          </section>
+        )}
       </main>
     </>
   )
