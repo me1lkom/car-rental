@@ -73,6 +73,11 @@ export function rentalStatus(rental) {
 export function formatPrice(value) {
   return new Intl.NumberFormat("ru-RU").format(value || 0) + " ₽"
 }
+export function formatDate(value) {
+  if (!value) return ""
+  const [year, month, day] = String(value).slice(0, 10).split("-")
+  return day && month && year ? `${day}.${month}.${year}` : value
+}
 export function daysBetween(start, end) {
   return Math.round((new Date(end) - new Date(start)) / 86400000) + 1
 }

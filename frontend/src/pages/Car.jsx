@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { Header } from "../components/Header"
-import { api, carImage, carName, formatPrice, statusLabel } from "../api"
+import { api, carImage, carName, formatDate, formatPrice } from "../api"
 
 export function Car() {
   const { id } = useParams()
@@ -34,16 +34,10 @@ export function Car() {
         <section className="car-top">
           <div className="photo big"><img src={carImage(car)} alt={carName(car)} /></div>
           <article className="panel">
-            <p className={"tag tag-" + car.status}>{statusLabel(car.status)}</p>
             <p className="price">{formatPrice(car.price_per_day)} / сутки</p>
             <p className="spec">{car.year} · {car.license_plate}</p>
             <p>{car.description}</p>
             <Link className="btn" to={"/booking/" + car.car_id}>Выбрать даты</Link>
-            <p className="spec">
-              {car.status === "available"
-                ? "Сейчас свободна. Даты вне занятых периодов пройдут."
-                : "Сейчас недоступна. Можно выбрать период после занятых дат."}
-            </p>
           </article>
         </section>
         <h1>{carName(car)}</h1>
@@ -52,7 +46,7 @@ export function Car() {
           <article className="panel">
             <h2>Занятые даты</h2>
             {periods.length === 0 && <p>Свободных ограничений нет. Можно бронировать на будущие даты.</p>}
-            {periods.map((period) => <p key={period.start_date + period.end_date}>{period.start_date} — {period.end_date}</p>)}
+            {periods.map((period) => <p key={period.start_date + period.end_date}>{formatDate(period.start_date)} — {formatDate(period.end_date)}</p>)}
           </article>
           <article className="panel">
             <h2>Условия аренды</h2>

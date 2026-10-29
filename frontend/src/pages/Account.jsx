@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import toast from "react-hot-toast"
 import { Header } from "../components/Header"
-import { api, carImage, carName, clearUser, formatPrice, rentalStatus, saveUser } from "../api"
+import { api, carImage, carName, clearUser, formatDate, formatPrice, rentalStatus, saveUser } from "../api"
 
 export function Account() {
   const navigate = useNavigate()
@@ -32,9 +32,7 @@ export function Account() {
       <main className="page cabinet">
         <aside className="panel side">
           <div className="avatar">{user.name?.[0]}</div>
-          <h2>{user.name} {user.surname}</h2>
-          <p className="spec">{user.email}</p>
-          <p className="spec">{user.phone}</p>
+          <h2>{user.name}</h2>
           <nav>
             <button className={tab === "orders" ? "on" : ""} onClick={() => setTab("orders")}>Заявки</button>
             <button className={tab === "profile" ? "on" : ""} onClick={() => setTab("profile")}>Профиль</button>
@@ -43,10 +41,7 @@ export function Account() {
         </aside>
         {tab === "orders" ? (
           <section>
-            <div className="section-head">
-              <h1>Мои заявки</h1>
-              <p className="spec">{orders.length} на сервере</p>
-            </div>
+            <h1>Мои заявки</h1>
             {orders.length === 0 && (
               <article className="panel empty">
                 <h2>Заявок пока нет</h2>
@@ -61,7 +56,7 @@ export function Account() {
                   <div>
                     <p className="tag">VELA-{order.rental_id}</p>
                     <h3>{carName(order.car)}</h3>
-                    <p>{order.start_date} — {order.end_date}</p>
+                    <p>{formatDate(order.start_date)} — {formatDate(order.end_date)}</p>
                     <p className="spec">{rentalStatus(order)}</p>
                   </div>
                   <div className="order-side">
@@ -75,14 +70,10 @@ export function Account() {
         ) : (
           <section>
             <h1>Профиль</h1>
-            <article className="panel profile-card">
-              <div className="avatar big">{user.name?.[0]}</div>
-              <div>
-                <h2>{user.name} {user.surname}</h2>
-                <p>Почта: {user.email}</p>
-                <p>Телефон: {user.phone}</p>
-                <p>Роль: {user.role}</p>
-              </div>
+            <article className="panel">
+              <p>Имя: {user.name} {user.surname}</p>
+              <p>Почта: {user.email}</p>
+              <p>Телефон: {user.phone}</p>
             </article>
           </section>
         )}

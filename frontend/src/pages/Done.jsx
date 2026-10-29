@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom"
 import { Header } from "../components/Header"
-import { carName, formatPrice, rentalStatus } from "../api"
+import { carName, formatDate, formatPrice, rentalStatus } from "../api"
 
 export function Done() {
   const rental = useLocation().state?.rental
@@ -21,7 +21,7 @@ export function Done() {
         <h1>VELA-{rental.rental_id}</h1>
         <article className="panel">
           <h2>{carName(car)}</h2>
-          <p>{rental.start_date} — {rental.end_date}</p>
+          <p>{formatDate(rental.start_date)} — {formatDate(rental.end_date)}</p>
           <p>{formatPrice(rental.total_price)}</p>
           <p className="spec">{rentalStatus(rental)}. Оплатите в течение 15 минут, иначе даты освободятся.</p>
         </article>

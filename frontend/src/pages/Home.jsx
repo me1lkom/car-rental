@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { Header } from "../components/Header"
-import { api, carImage, carName, formatPrice, statusLabel } from "../api"
+import { api, carImage, carName, formatPrice } from "../api"
 
 const tabs = [
   ["", "Все"],
@@ -14,7 +14,7 @@ const tabs = [
 export function Home() {
   const [cars, setCars] = useState([])
   const [attrs, setAttrs] = useState(null)
-  const [filter, setFilter] = useState({ status: "", rental_class_id: "", body_type_id: "", brand: "" })
+  const [filter, setFilter] = useState({ rental_class_id: "", body_type_id: "", brand: "" })
   const [tab, setTab] = useState("")
   const [error, setError] = useState("")
 
@@ -66,20 +66,16 @@ export function Home() {
           </form>
           <img className="search-photo" src="/photos/eclass.jpg" alt="Автомобиль VELA" />
         </section>
+
         <div className="tabs">
           {tabs.map(([value, label]) => (
             <button key={label} className={tab === value ? "tab on" : "tab"} onClick={() => pickClass(value)}>{label}</button>
           ))}
         </div>
+
         <div className="section-head">
           <p className="spec">{error ? "" : "Найдено " + cars.length + " автомобилей"}</p>
           <div className="filters">
-            <select name="status" value={filter.status} onChange={change}>
-              <option value="">Статус</option>
-              <option value="available">Свободные</option>
-              <option value="unavailable">Занятые</option>
-              <option value="maintenance">Обслуживание</option>
-            </select>
             <select name="body_type_id" value={filter.body_type_id} onChange={change}>
               <option value="">Кузов</option>
               {attrs?.body_types?.map((item) => <option key={item.body_type_id} value={item.body_type_id}>{item.name}</option>)}
@@ -94,7 +90,6 @@ export function Home() {
             <article key={car.car_id} className="card">
               <div className="photo">
                 <img src={carImage(car)} alt={carName(car)} />
-                <p className={"tag tag-" + car.status}>{statusLabel(car.status)}</p>
               </div>
               <div className="card-body">
                 <h3>{carName(car)}</h3>

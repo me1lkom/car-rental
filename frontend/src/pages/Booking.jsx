@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import toast from "react-hot-toast"
 import { Header } from "../components/Header"
-import { api, carImage, carName, daysBetween, formatPrice, readUser } from "../api"
+import { api, carImage, carName, daysBetween, formatDate, formatPrice, readUser } from "../api"
 
 export function Booking() {
   const { id } = useParams()
@@ -37,7 +37,13 @@ export function Booking() {
       toast.success("Заявка создана. Нужна предоплата в течение 15 минут")
       navigate("/done", { state: { rental, car } })
     } catch (error) {
-      toast.error(error.message)
+      const map = {
+        "Selected start date before now": "Дата начала не может быть в прошлом",
+        "Selected dates are unavailable": "Эти даты уже заняты",
+        "Car unavailable": "Машина сейчас недоступна",
+        "Car not found": "Машина не найдена",
+      }
+      toast.error(map[error.message] || error.message)
     }
   }
 
@@ -65,7 +71,7 @@ export function Booking() {
             <p className="price">{formatPrice(car.price_per_day)} / сутки</p>
             <h3>Уже занято</h3>
             {periods.length === 0 && <p className="spec">Свободных ограничений нет.</p>}
-            {periods.map((period) => <p key={period.start_date}>{period.start_date} — {period.end_date}</p>)}
+            {periods.map((period) => <p key={period.start_date}>{formatDate(period.start_date)} — {formatDate(period.end_date)}</p>)}
             <Link to={"/cars/" + car.car_id}>К машине</Link>
           </article>
         </section>
