@@ -1,0 +1,52 @@
+ Container car-rental-perf-k6-run-786072ad6281 Creating 
+ Container car-rental-perf-k6-run-786072ad6281 Created 
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: /scripts/rentals-create.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 5 max VUs, 40s max duration (incl. graceful stop):
+              * default: 5 looping VUs for 10s (gracefulStop: 30s)
+
+
+
+  █ THRESHOLDS 
+
+    checks
+    ✓ 'rate>0.99' rate=0.00%
+
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 0     0/s
+    checks_succeeded...: 0.00% 0 out of 0
+    checks_failed......: 0.00% 0 out of 0
+
+
+    HTTP
+    http_req_duration..............: avg=13.14ms min=4.81ms med=13.14ms max=21.47ms p(90)=19.8ms p(95)=20.63ms
+      { expected_response:true }...: avg=13.14ms min=4.81ms med=13.14ms max=21.47ms p(90)=19.8ms p(95)=20.63ms
+    http_req_failed................: 0.00% 0 out of 2
+    http_reqs......................: 2     64.91153/s
+
+    NETWORK
+    data_received..................: 13 kB 409 kB/s
+    data_sent......................: 575 B 19 kB/s
+
+
+
+
+Run       [ 100% ] setup()
+default   [   0% ]
+time="2026-11-18T22:21:45Z" level=error msg="TypeError: Object has no member 'filter'\n\tat setup (file:///scripts/rentals-create.js:36:12(70))\n" hint="script exception" source=stacktrace
+

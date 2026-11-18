@@ -26,6 +26,19 @@ export async function findCars(filters: CarsFilter) {
     addFilter('c.seats', filters.seats);
     addFilter('c.doors', filters.doors);
 
+    const countQuery = `
+        SELECT COUNT(*)::int AS total
+        FROM cars AS c
+        WHERE ${conditions.join(' AND ')}
+    `;
+
+    const countResult = await pool.query(countQuery, values);
+
+    const limitParam = values.length + 1;
+    const offsetParam = values.length + 2;
+
+    values.push(filters.limit, filters.offset);
+
     const query = `
         SELECT
             c.*,
@@ -46,11 +59,17 @@ export async function findCars(filters: CarsFilter) {
         LEFT JOIN fuel_types AS ft
             ON c.fuel_type_id = ft.fuel_type_id
         WHERE ${conditions.join(' AND ')}
+        ORDER BY c.car_id
+        LIMIT $${limitParam}
+        OFFSET $${offsetParam}
     `;
 
     const result = await pool.query(query, values);
 
-    return result.rows;
+    return {
+        items: result.rows,
+        total: countResult.rows[0].total
+    };
 }
 
 

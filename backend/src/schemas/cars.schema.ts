@@ -33,6 +33,11 @@ const queryPositiveInt = z.string()
     .transform(Number)
     .pipe(z.number().int().positive());
 
+const queryNonNegativeInt = z.string()
+    .regex(/^(0|[1-9]\d*)$/)
+    .transform(Number)
+    .pipe(z.number().int().nonnegative());
+
 export const carsFilterSchema = z.object({
     brand: z.string().min(1).optional(),
     model: z.string().min(1).optional(),
@@ -53,7 +58,14 @@ export const carsFilterSchema = z.object({
     doors: z.string()
         .transform(Number)
         .pipe(z.number().int().min(2).max(6))
-        .optional()
+        .optional(),
+
+    limit: queryPositiveInt
+        .pipe(z.number().max(100))
+        .default(20),
+    
+    offset: queryNonNegativeInt
+        .default(0)
 });
 
 export type CarsFilter = z.infer<typeof carsFilterSchema>;

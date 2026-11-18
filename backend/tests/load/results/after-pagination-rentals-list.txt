@@ -1,0 +1,102 @@
+ Container car-rental-perf-k6-run-1a0923a85282 Creating 
+ Container car-rental-perf-k6-run-1a0923a85282 Created 
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: /scripts/rentals-list.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 5 max VUs, 45s max duration (incl. graceful stop):
+              * default: 5 looping VUs for 15s (gracefulStop: 30s)
+
+
+running (01.0s), 5/5 VUs, 5 complete and 0 interrupted iterations
+default   [   6% ] 5 VUs  00.9s/15s
+
+running (02.0s), 5/5 VUs, 15 complete and 0 interrupted iterations
+default   [  13% ] 5 VUs  01.9s/15s
+
+running (03.0s), 5/5 VUs, 25 complete and 0 interrupted iterations
+default   [  19% ] 5 VUs  02.9s/15s
+
+running (04.0s), 5/5 VUs, 35 complete and 0 interrupted iterations
+default   [  26% ] 5 VUs  03.9s/15s
+
+running (05.0s), 5/5 VUs, 45 complete and 0 interrupted iterations
+default   [  33% ] 5 VUs  04.9s/15s
+
+running (06.0s), 5/5 VUs, 55 complete and 0 interrupted iterations
+default   [  39% ] 5 VUs  05.9s/15s
+
+running (07.0s), 5/5 VUs, 65 complete and 0 interrupted iterations
+default   [  46% ] 5 VUs  06.9s/15s
+
+running (08.0s), 5/5 VUs, 75 complete and 0 interrupted iterations
+default   [  53% ] 5 VUs  07.9s/15s
+
+running (09.0s), 5/5 VUs, 85 complete and 0 interrupted iterations
+default   [  59% ] 5 VUs  08.9s/15s
+
+running (10.0s), 5/5 VUs, 90 complete and 0 interrupted iterations
+default   [  66% ] 5 VUs  09.9s/15s
+
+running (11.0s), 5/5 VUs, 100 complete and 0 interrupted iterations
+default   [  73% ] 5 VUs  10.9s/15s
+
+running (12.0s), 5/5 VUs, 110 complete and 0 interrupted iterations
+default   [  79% ] 5 VUs  11.9s/15s
+
+running (13.0s), 5/5 VUs, 120 complete and 0 interrupted iterations
+default   [  86% ] 5 VUs  12.9s/15s
+
+running (14.0s), 5/5 VUs, 130 complete and 0 interrupted iterations
+default   [  93% ] 5 VUs  13.9s/15s
+
+running (15.0s), 5/5 VUs, 140 complete and 0 interrupted iterations
+default   [  99% ] 5 VUs  14.9s/15s
+
+
+  █ THRESHOLDS 
+
+    checks
+    ✓ 'rate>0.99' rate=100.00%
+
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 145     9.504136/s
+    checks_succeeded...: 100.00% 145 out of 145
+    checks_failed......: 0.00%   0 out of 145
+
+    ✓ GET /rentals returns 200
+
+    HTTP
+    http_req_duration..............: avg=21.81ms  min=4.56ms   med=22.37ms  max=69.98ms  p(90)=30.38ms  p(95)=34.63ms 
+      { expected_response:true }...: avg=21.81ms  min=4.56ms   med=22.37ms  max=69.98ms  p(90)=30.38ms  p(95)=34.63ms 
+    http_req_failed................: 0.00%  0 out of 146
+    http_reqs......................: 146    9.569682/s
+
+    EXECUTION
+    iteration_duration.............: avg=523.34ms min=504.68ms med=523.43ms max=547.16ms p(90)=531.37ms p(95)=533.07ms
+    iterations.....................: 145    9.504136/s
+    vus............................: 5      min=5        max=5
+    vus_max........................: 5      min=5        max=5
+
+    NETWORK
+    data_received..................: 1.4 MB 92 kB/s
+    data_sent......................: 42 kB  2.7 kB/s
+
+
+
+
+running (15.3s), 0/5 VUs, 145 complete and 0 interrupted iterations
+default ✓ [ 100% ] 5 VUs  15s

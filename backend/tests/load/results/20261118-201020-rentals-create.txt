@@ -1,0 +1,85 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: /scripts/rentals-create.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 5 max VUs, 40s max duration (incl. graceful stop):
+              * default: 5 looping VUs for 10s (gracefulStop: 30s)
+
+
+running (01.0s), 5/5 VUs, 10 complete and 0 interrupted iterations
+default   [   9% ] 5 VUs  00.9s/10s
+
+running (02.0s), 5/5 VUs, 25 complete and 0 interrupted iterations
+default   [  19% ] 5 VUs  01.9s/10s
+
+running (03.0s), 5/5 VUs, 40 complete and 0 interrupted iterations
+default   [  29% ] 5 VUs  02.9s/10s
+
+running (04.0s), 5/5 VUs, 55 complete and 0 interrupted iterations
+default   [  39% ] 5 VUs  03.9s/10s
+
+running (05.0s), 5/5 VUs, 70 complete and 0 interrupted iterations
+default   [  49% ] 5 VUs  04.9s/10s
+
+running (06.0s), 5/5 VUs, 85 complete and 0 interrupted iterations
+default   [  59% ] 5 VUs  05.9s/10s
+
+running (07.0s), 5/5 VUs, 100 complete and 0 interrupted iterations
+default   [  69% ] 5 VUs  06.9s/10s
+
+running (08.0s), 5/5 VUs, 118 complete and 0 interrupted iterations
+default   [  79% ] 5 VUs  07.9s/10s
+
+running (09.0s), 5/5 VUs, 135 complete and 0 interrupted iterations
+default   [  89% ] 5 VUs  08.9s/10s
+
+running (10.0s), 5/5 VUs, 150 complete and 0 interrupted iterations
+default   [  99% ] 5 VUs  09.9s/10s
+
+
+  █ THRESHOLDS 
+
+    checks
+    ✓ 'rate>0.99' rate=100.00%
+
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 155     15.139022/s
+    checks_succeeded...: 100.00% 155 out of 155
+    checks_failed......: 0.00%   0 out of 155
+
+    ✓ POST /rentals returns 201
+
+    HTTP
+    http_req_duration..............: avg=25.89ms  min=7.72ms   med=23.68ms  max=101.12ms p(90)=33.52ms  p(95)=63.01ms 
+      { expected_response:true }...: avg=25.89ms  min=7.72ms   med=23.68ms  max=101.12ms p(90)=33.52ms  p(95)=63.01ms 
+    http_req_failed................: 0.00%  0 out of 157
+    http_reqs......................: 157    15.334364/s
+
+    EXECUTION
+    iteration_duration.............: avg=327.55ms min=308.37ms med=324.86ms max=401.7ms  p(90)=337.47ms p(95)=364.02ms
+    iterations.....................: 155    15.139022/s
+    vus............................: 5      min=5        max=5
+    vus_max........................: 5      min=5        max=5
+
+    NETWORK
+    data_received..................: 1.2 MB 116 kB/s
+    data_sent......................: 60 kB  5.9 kB/s
+
+
+
+
+running (10.2s), 0/5 VUs, 155 complete and 0 interrupted iterations
+default ✓ [ 100% ] 5 VUs  10s

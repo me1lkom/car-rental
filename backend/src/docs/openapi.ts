@@ -163,6 +163,15 @@ export const openapiDocument = {
                 body_type_name: str, drive_type_name: str, rental_class_name: str,
                 transmission_name: str, fuel_type_name: str
             }, ['car_id', 'license_plate', 'brand', 'model', 'year']),
+            CarList: objectOf({
+                items: arrayOf(schemaRef('Car')),
+                pagination: objectOf({
+                    total: int,
+                    limit: int,
+                    offset: int,
+                    has_more: { type: 'boolean' }
+                }, ['total', 'limit', 'offset', 'has_more'])
+            }, ['items', 'pagination']),
             CarAttributes: objectOf({
                 body_types: arrayOf({ type: 'object', additionalProperties: true }),
                 drive_types: arrayOf({ type: 'object', additionalProperties: true }),
@@ -291,8 +300,10 @@ export const openapiDocument = {
                     query('drive_type_id', positiveId), query('rental_class_id', positiveId),
                     query('transmission_id', positiveId), query('fuel_type_id', positiveId),
                     query('seats', { type: 'integer', minimum: 2, maximum: 9 }),
-                    query('doors', { type: 'integer', minimum: 2, maximum: 6 })
-                ], response: arrayOf(schemaRef('Car')), errors: [400]
+                    query('doors', { type: 'integer', minimum: 2, maximum: 6 }),
+                    query('limit', {type: 'integer', minimum: 1, maximum: 100, default: 20 }),
+                    query('offset', { type: 'integer', minimum: 0, default: 0 })
+                ], response: schemaRef('CarList'), errors: [400]
             }),
             post: endpoint({
                 tag: 'Cars', summary: 'Добавить автомобиль (manager/admin)', security: 'cookieAuth',
