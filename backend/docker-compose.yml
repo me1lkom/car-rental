@@ -84,7 +84,7 @@ services:
     - loki_data:/tmp/loki
 
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:3100/ready" ]
+      test: ["CMD", "/usr/bin/loki", "-health"]
       interval: 5s
       timeout: 3s
       retries: 5
