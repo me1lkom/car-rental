@@ -8,7 +8,10 @@
     "migrate": "node-pg-migrate",
     "predev": "npm run migrate -- up",
     "dev": "tsx src/index.ts",
-    "test:smoke": "vitest run tests/smoke"
+    "test:smoke": "vitest run tests/smoke",
+    "test:unit": "vitest run tests/unit",
+    "test:integration:runner": "vitest run tests/integration",
+    "test:integration": "sh ./scripts/run-integration-tests.sh"
   },
   "keywords": [],
   "author": "",

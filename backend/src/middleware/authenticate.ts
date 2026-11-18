@@ -3,14 +3,14 @@ import type { Request, Response, NextFunction } from "express";
 import jwt from 'jsonwebtoken';
 import type { AuthPayload } from '../types/auth.js';
 import { checkUser as checkUserRepository } from '../repositories/auth.repository.js'
+import { sendError } from './error-handler.js';
+
 
 export async function checkAuth(req: Request, res: Response, next: NextFunction) {
     const accessToken = req.cookies.access_token;
 
     if (!accessToken) {
-        return res.status(401).json({
-            error: 'Miss token'
-        });
+        return sendError(res, 401, 'Miss token');
     }
 
     const jwtSecret = process.env.JWT_SECRET_KEY;
@@ -19,14 +19,12 @@ export async function checkAuth(req: Request, res: Response, next: NextFunction)
         throw new Error('Invalid authentication configuration');
     }
 
-    let decodedJWT;     
+    let decodedJWT;
 
     try {
         decodedJWT = jwt.verify(accessToken, jwtSecret) as AuthPayload;
     } catch (error) {
-        return res.status(401).json({
-            error: 'Invalid or expired token'
-        });
+        return sendError(res, 401, 'Invalid or expired token');
     }
 
     const userId = decodedJWT.user_id;
@@ -40,9 +38,7 @@ export async function checkAuth(req: Request, res: Response, next: NextFunction)
     const userData = await checkUserRepository(checkPayload);
 
     if (!userData) {
-        return res.status(401).json({
-            error: 'Invalid or revoked session'
-        });
+        return sendError(res, 401, 'Invalid or revoked session');
     }
 
 
@@ -50,6 +46,6 @@ export async function checkAuth(req: Request, res: Response, next: NextFunction)
         user_id: userData.user_id,
         role: userData.role
     }
-    
+
     return next();
 }

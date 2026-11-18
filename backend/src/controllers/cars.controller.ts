@@ -1,26 +1,24 @@
 import type { Request, Response } from 'express';
 import {
-    getCars as getCarsService, 
+    getCars as getCarsService,
     createCar as createCarService,
-    getCarById as getCarByIdService, 
+    getCarById as getCarByIdService,
     updateCar as updateCarService,
-    temporaryFindAllCars as temporaryFindAllCarsService, 
+    temporaryFindAllCars as temporaryFindAllCarsService,
     deleteCar as deleteCarService,
-    restoreCar as restoreCarService, 
+    restoreCar as restoreCarService,
     getCarAttributes as getCarAttributesService,
     findCarUnavailablePeriods as findCarUnavailablePeriodsService
 } from '../services/cars.service.js';
 import { createCarSchema, updateCarSchema, carsFilterSchema } from '../schemas/cars.schema.js';
+import { sendError } from '../middleware/error-handler.js';
 
 
 export async function getCars(req: Request, res: Response) {
     const result = carsFilterSchema.safeParse(req.query);
 
     if (!result.success) {
-        return res.status(400).json({
-            error: 'Invalid car filters',
-            details: result.error.issues
-        });
+        return sendError(res, 400, 'Invalid car filters', result.error.issues);
     }
 
     const cars = await getCarsService(result.data);
@@ -33,10 +31,7 @@ export async function createCar(req: Request, res: Response) {
     const result = createCarSchema.safeParse(req.body);
 
     if (!result.success) {
-        return res.status(400).json({
-            error: 'Invalid car data',
-            details: result.error.issues
-        });
+        return sendError(res, 400, 'Invalid car data', result.error.issues);
     }
 
     const car = await createCarService(result.data);
@@ -48,13 +43,13 @@ export async function getCarById(req: Request, res: Response) {
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({ error: 'Invalid car id' });
+        return sendError(res, 400, 'Invalid car id');
     }
 
     const car = await getCarByIdService(id);
 
     if (!car) {
-        return res.status(404).json({ error: 'Car not found' });
+        return sendError(res, 404, 'Car not found');
     }
 
     res.status(200).json(car);
@@ -64,30 +59,23 @@ export async function updateCar(req: Request, res: Response) {
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({ error: 'Invalid car id' });
+        return sendError(res, 400, 'Invalid car id');
     }
 
     const result = updateCarSchema.safeParse(req.body);
 
     if (!result.success) {
-        return res.status(400).json({
-            error: 'Invalid data',
-            details: result.error.issues
-        });
+        return sendError(res, 400, 'Invalid data', result.error.issues);
     }
 
     if (Object.keys(result.data).length === 0) {
-        return res.status(400).json({
-            error: 'No fields to update'
-        });
+        return sendError(res, 400, 'No fields to update');
     }
 
     const car = await updateCarService(id, result.data);
 
     if (!car) {
-        return res.status(404).json({
-            error: 'Car not found'
-        });
+        return sendError(res, 400, 'Car not found');
     }
 
     res.status(200).json(car);
@@ -106,17 +94,13 @@ export async function deleteCar(req: Request, res: Response) {
     const id = Number(req.params.id)
 
     if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({
-            error: 'Invalid car id'
-        });
+        return sendError(res, 400, 'Invalid car id');
     }
 
     const car = await deleteCarService(id);
 
     if (!car) {
-        return res.status(404).json({
-            error: 'Car not found'
-        });
+        return sendError(res, 404, 'Car not found');
     }
 
     res.status(200).json(car);
@@ -127,17 +111,13 @@ export async function restoreCar(req: Request, res: Response) {
     const id = Number(req.params.id)
 
     if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({
-            error: 'Invalid car id'
-        });
+        return sendError(res, 400, 'Invalid car id');
     }
 
     const car = await restoreCarService(id);
 
     if (!car) {
-        return res.status(404).json({
-            error: 'Car not found'
-        });
+        return sendError(res, 404, 'Car not found');
     }
 
     res.status(200).json(car);
@@ -153,17 +133,13 @@ export async function findCarUnavaliblePeriods(req: Request, res: Response) {
     const id = Number(req.params.id)
 
     if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({
-            error: 'Invalid car id'
-        });
+        return sendError(res, 400, 'Invalid car id');
     }
 
     const result = await findCarUnavailablePeriodsService(id);
 
     if (!result.ok) {
-        return res.status(404).json({
-            error: 'Car not found'
-        });
+        return sendError(res, 404, 'Car not found');
     }
 
     res.status(200).json({

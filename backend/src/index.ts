@@ -7,6 +7,8 @@ import carsRouter from './routes/cars.routes.js';
 import userRouter from './routes/users.routes.js'
 import authUsers from './routes/auth.routes.js';
 import rentalsRouter from './routes/rentals.routes.js';
+import { sendError, errorHandler } from './middleware/error-handler.js';
+
 
 const app = express();
 
@@ -29,7 +31,7 @@ app.use(pinoHttp({
     }
 }));
 app.use(express.json());
-app.use(cookieParser()); 
+app.use(cookieParser());
 
 app.use('/cars', carsRouter);
 
@@ -38,6 +40,12 @@ app.use('/users', userRouter);
 app.use('/auth', authUsers)
 
 app.use('/rentals', rentalsRouter)
+
+app.use((req, res) => {
+    return sendError(res, 404, 'Route not found');
+});
+
+app.use(errorHandler);
 
 app.listen(3000, () => {
     console.log('Server started on http://localhost:3000');

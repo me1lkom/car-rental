@@ -9,6 +9,8 @@ import {
     changeUserPassword as changeUserPasswordService
 } from '../services/users.service.js'
 import { createUserSchema, updateUserSchema, passwordChangeSchema } from "../schemas/users.schema.js";
+import { sendError } from '../middleware/error-handler.js';
+
 
 export async function getUsers(req: Request, res: Response) {
     const users = await getUserService();
@@ -20,20 +22,15 @@ export async function createUser(req: Request, res: Response) {
     const result = createUserSchema.safeParse(req.body);
 
     if (!result.success) {
-        return res.status(400).json({
-            error: 'Invalid user data',
-            details: result.error.issues
-        });
+        return sendError(res, 400, 'Invalid user data', result.error.issues);
     }
 
     const creation = await createUserService(result.data);
 
     if (!creation.ok) {
-        return res.status(409).json({
-            error: creation.reason === 'EMAIL_ALREADY_EXISTS'
+        return sendError(res, 409, creation.reason === 'EMAIL_ALREADY_EXISTS'
                 ? 'Email already registered'
-                : 'Phone already registered'
-        });
+                : 'Phone already registered');
     }
 
     return res.status(201).json(creation.user);
@@ -43,17 +40,13 @@ export async function getUserById(req: Request, res: Response) {
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({
-            error: 'Invalid user id'
-        });
+        return sendError(res, 400, 'Invalid user id');
     }
 
     const user = await getUserByIdService(id);
 
     if (!user) {
-        return res.status(404).json({
-            error: 'User not found'
-        });
+        return sendError(res, 404, 'User not found');
     }
 
     res.status(200).json(user);
@@ -63,32 +56,23 @@ export async function updateUser(req: Request, res: Response) {
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({
-            error: 'Invalid user id'
-        });
+        return sendError(res, 400, 'Invalid user id');
     }
 
     const result = updateUserSchema.safeParse(req.body);
 
     if (!result.success) {
-        return res.status(400).json({
-            error: 'Invalid data',
-            details: result.error.issues
-        });
+        return sendError(res, 400, 'Invalid data', result.error.issues);
     }
 
     if (Object.keys(result.data).length === 0) {
-        return res.status(400).json({
-            error: 'No fields to update'
-        });
+        return sendError(res, 400, 'No fields to update');
     }
 
     const user = await updateUserService(id, result.data);
 
     if (!user) {
-        return res.status(404).json({
-            error: 'User not found'
-        });
+        return sendError(res, 404, 'User not found');
     }
 
     res.status(200).json(user);
@@ -99,18 +83,14 @@ export async function blockUser(req: Request, res: Response) {
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({
-            error: 'Invalid user id'
-        });
+        return sendError(res, 400, 'Invalid user id');
     }
 
     const result = await blockUserService(id);
 
     if (!result.ok) {
         if (result.reason === 'INVALID_USER_BLOCK') {
-            return res.status(404).json({
-                error: 'User not found'
-            });
+            return sendError(res, 404, 'User not found');
         }
     }
 
@@ -121,17 +101,13 @@ export async function unblockUser(req: Request, res: Response) {
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({
-            error: 'Invalid user id'
-        });
+        return sendError(res, 400, 'Invalid user id');
     }
 
     const user = await unblockUserService(id);
 
     if (!user) {
-        return res.status(404).json({
-            error: 'User not found'
-        });
+        return sendError(res, 404, 'User not found');
     }
 
     res.status(200).json(user);
@@ -143,31 +119,22 @@ export async function changeUserPassword(req: Request, res: Response) {
     let result = passwordChangeSchema.safeParse(req.body);
 
     if (!result.success) {
-        return res.status(400).json({
-            error: 'Invalid user data',
-            details: result.error?.issues
-        });
+        return sendError(res, 400, 'Invalid user data', result.error?.issues);
     }
 
     if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({
-            error: 'Invalid user id'
-        });
+        return sendError(res, 400, 'Invalid user id');
     }
 
     const changeeResult = await changeUserPasswordService(id, result.data);
 
     if (!changeeResult.ok) {
         if (changeeResult.reason === 'USER_NOT_FOUND') {
-            return res.status(404).json({
-                error: 'User not found'
-            });
+            return sendError(res, 404, 'User not found');
         }
 
         if (changeeResult.reason === 'WRONG_PASSWORD') {
-            return res.status(400).json({
-                error: 'Incorrect current password'
-            });
+            return sendError(res, 400, 'Incorrect current password');
         }
     }
 
