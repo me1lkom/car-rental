@@ -99,8 +99,40 @@ describe('Cars API', () => {
             .query({ brand: car.brand });
 
         expect(response.status).toBe(200);
-        expect(response.body).toHaveLength(1);
-        expect(response.body[0].car_id).toBe(car.car_id);
+        expect(response.body.items).toHaveLength(1);
+        expect(response.body.items[0].car_id).toBe(car.car_id);
+
+        expect(response.body.pagination).toEqual({
+            total: 1,
+            limit: 20,
+            offset: 0,
+            has_more: false
+        });
+    });
+
+    test('GET /cars — пагинация', async () => {
+        const first = await prepareCar();
+        const second = await prepareCar();
+
+        await db.query(
+            'UPDATE cars SET brand = $1 WHERE car_id = $2',
+            [first.brand, second.car_id]
+        );
+
+        const response = await request(BASE_URL)
+            .get('/cars')
+            .query({ brand: first.brand, limit: 1, offset: 1 });
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toHaveLength(1);
+        expect(response.body.items[0].car_id).toBe(second.car_id);
+
+        expect(response.body.pagination).toEqual({
+            total: 2,
+            limit: 1,
+            offset: 1,
+            has_more: false
+        });
     });
 
     test('PATCH /cars/:id — изменение стоимости', async () => {
