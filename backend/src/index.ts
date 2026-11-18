@@ -8,6 +8,8 @@ import userRouter from './routes/users.routes.js'
 import authUsers from './routes/auth.routes.js';
 import rentalsRouter from './routes/rentals.routes.js';
 import { sendError, errorHandler } from './middleware/error-handler.js';
+import swaggerUi from 'swagger-ui-express';
+import { openapiDocument } from './docs/openapi.js';
 
 
 const app = express();
@@ -32,6 +34,15 @@ app.use(pinoHttp({
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+app.get('/openapi.json', (_req, res) => {
+    res.json(openapiDocument);
+});
+
+app.use('/docs',
+    swaggerUi.serve,
+    swaggerUi.setup(openapiDocument)
+);
 
 app.use('/cars', carsRouter);
 
