@@ -1,19 +1,20 @@
 import {
-    getUserByEmail as getUserByEmailRepository, addRefreshToken as addRefreshTokenRepository,
-    getSessionByRefresh as getSessionByRefreshRepository, updateSession as updateSessionRepository,
+    getUserByEmail as getUserByEmailRepository,
+    addRefreshToken as addRefreshTokenRepository,
+    getSessionByRefresh as getSessionByRefreshRepository,
+    updateSession as updateSessionRepository,
     logout as logoutRepository
 } from '../repositories/auth.repository.js';
 import type {
-    Login as LoginType, RefreshToken as RefreshTokenType,
+    Login as LoginType,
+    RefreshToken as RefreshTokenType,
     UpdateRefreshData as UpdateRefreshDataType
 } from '../schemas/auth.schema.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import type { SignOptions } from 'jsonwebtoken';
 import type { AuthPayload } from '../types/auth.js';
-import { addDays } from 'date-fns';
 import { randomBytes, createHash } from 'node:crypto';
-
+import { getAuthConfig } from '../config/auth.config.js'
 
 export async function login(userData: LoginType) {
 
@@ -33,20 +34,7 @@ export async function login(userData: LoginType) {
 
     const { user_id } = findUser;
 
-    const jwtSecret = process.env.JWT_SECRET_KEY;
-    const accessTtlSeconds = Number(process.env.ACCESS_TOKEN_TTL_SECONDS);
-    const refreshTtlSeconds = Number(process.env.REFRESH_TOKEN_TTL_SECONDS);
-
-
-    if (
-        !jwtSecret ||
-        !accessTtlSeconds ||
-        !Number.isInteger(refreshTtlSeconds) ||
-        accessTtlSeconds <= 0 ||
-        refreshTtlSeconds <= 0
-    ) {
-        throw new Error('Invalid authentication configuration');
-    }
+    const { jwtSecret, accessTtlSeconds, refreshTtlSeconds } = getAuthConfig();
 
     const refreshToken = randomBytes(32).toString('hex');
     const refreshTokenHash = createHash('sha256').update(refreshToken).digest('hex');
@@ -71,7 +59,7 @@ export async function login(userData: LoginType) {
         user_id,
         session_id: sessionId
     };
-    
+
     const accessToken = jwt.sign(payload, jwtSecret, {
         expiresIn: accessTtlSeconds
     });
@@ -100,20 +88,7 @@ export async function refreshToken(token: string) {
         session_id: sessionId
     };
 
-    const jwtSecret = process.env.JWT_SECRET_KEY;
-    const accessTtlSeconds = Number(process.env.ACCESS_TOKEN_TTL_SECONDS);
-    const refreshTtlSeconds = Number(process.env.REFRESH_TOKEN_TTL_SECONDS);
-
-
-    if (
-        !jwtSecret ||
-        !accessTtlSeconds ||
-        !Number.isInteger(refreshTtlSeconds) ||
-        accessTtlSeconds <= 0 ||
-        refreshTtlSeconds <= 0
-    ) {
-        throw new Error('Invalid authentication configuration');
-    }
+    const { jwtSecret, accessTtlSeconds, refreshTtlSeconds } = getAuthConfig();
 
     const accessToken = jwt.sign(payload, jwtSecret, {
         expiresIn: accessTtlSeconds

@@ -14,6 +14,9 @@ import {
     updateRentalManager as updateRentalManagerService
 } from '../services/rentals.service.js';
 import { createRentalSchema, updateRentalSchema } from '../schemas/rentals.schema.js';
+import { sendError } from '../middleware/error-handler.js';
+import { checkId } from "../utils/check-id.js";
+
 
 // Получение аренд
 
@@ -22,15 +25,11 @@ export async function getRentals(req: Request, res: Response) {
     const offset = Number(req.query.offset ?? 0);
 
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
-        return res.status(400).json({
-            error: 'Invalid limit'
-        })
+        return sendError(res, 400, 'Invalid limit');
     }
 
     if (!Number.isInteger(offset) || offset < 0) {
-        return res.status(400).json({
-            error: 'Invalid offset'
-        })
+        return sendError(res, 400, 'Invalid offset');
     }
 
     const result = await getRentalsService(limit, offset);
@@ -40,9 +39,7 @@ export async function getRentals(req: Request, res: Response) {
 
 export async function getMyRentals(req: Request, res: Response) {
     if (!req.user) {
-        return res.status(401).json({
-            error: 'Ошибка авторизации'
-        })
+        return sendError(res, 401, 'Ошибка авторизации');
     }
 
     const user_id: number = req.user.user_id;
@@ -54,25 +51,22 @@ export async function getMyRentals(req: Request, res: Response) {
 
 export async function getRentalById(req: Request, res: Response) {
     if (!req.user) {
-        return res.status(401).json({
-            error: 'Ошибка авторизации'
-        })
+        return sendError(res, 401, 'Ошибка авторизации');
     }
 
     const user_id: number = req.user.user_id;
     const role = req.user.role;
-    const rental_id = Number(req.params.id);
+    const rentalId = checkId(req.params.id);
 
-    if (!Number.isInteger(rental_id) || rental_id <= 0) {
-        return res.status(400).json({ error: 'Invalid rental id' });
+    if (!rentalId) {
+        return sendError(res, 400, 'Rental not found');
     }
-    const result = await getRentalByIdService(rental_id, role, user_id);
+
+    const result = await getRentalByIdService(rentalId, role, user_id);
 
     if (!result.ok) {
         if (result.reason === 'RENTAL_NOT_FOUND') {
-            return res.status(404).json({
-                error: 'Rental not found'
-            });
+            return sendError(res, 404, 'Rental not found');
         }
     }
 
@@ -84,18 +78,13 @@ export async function getRentalById(req: Request, res: Response) {
 
 export async function createRental(req: Request, res: Response) {
     if (!req.user) {
-        return res.status(401).json({
-            error: 'Ошибка авторизации'
-        })
+        return sendError(res, 401, 'Ошибка авторизации');
     }
 
     const validation = createRentalSchema.safeParse(req.body);
 
     if (!validation.success) {
-        return res.status(400).json({
-            error: 'Invalid rental data',
-            details: validation.error.issues
-        });
+        return sendError(res, 400, 'Invalid rental data', validation.error.issues);
     }
 
     const user_id = req.user.user_id
@@ -108,28 +97,20 @@ export async function createRental(req: Request, res: Response) {
 
     if (!result.ok) {
         if (result.reason === 'CAR_NOT_FOUND') {
-            return res.status(404).json({
-                error: 'Car not found'
-            });
+            return sendError(res, 404, 'Car not found');
         }
 
         if (result.reason === 'CAR_UNAVAILABLE') {
-            return res.status(409).json({
-                error: 'Car unavailable'
-            });
+            return sendError(res, 409, 'Car unavailable');
         }
 
 
         if (result.reason === 'DATES_UNAVAILABLE') {
-            return res.status(409).json({
-                error: 'Selected dates are unavailable'
-            });
+            return sendError(res, 409, 'Selected dates are unavailable');
         }
 
         if (result.reason === 'INCORRECT_START_DATE') {
-            return res.status(400).json({
-                error: 'Selected start date before now'
-            });
+            return sendError(res, 400, 'Selected start date before now');
         }
 
     }
@@ -139,35 +120,15 @@ export async function createRental(req: Request, res: Response) {
 
 
 // Изменение аренды
-
-function checkRentalId(rawId: unknown) {
-
-    if (typeof rawId !== 'string') {
-        return null;
-    }
-
-    const rentalId = Number(rawId);
-
-    if (!Number.isInteger(rentalId) || rentalId <= 0) {
-        return null
-    }
-
-    return rentalId;
-}
-
 type StatusChangeResult = Awaited<ReturnType<typeof confirmRentalService>>;
 
 function handleStatusResponse(result: StatusChangeResult, res: Response) {
     if (!result.ok) {
         if (result.reason === 'RENTAL_NOT_FOUND') {
-            return res.status(404).json({
-                error: 'Rental not found'
-            });
+            return sendError(res, 404, 'Rental not found');
         }
         if (result.reason === 'INVALID_RENTAL_STATUS') {
-            return res.status(409).json({
-                error: 'Invalid rental status transition'
-            });
+            return sendError(res, 409, 'Invalid rental status transition');
         }
     }
 
@@ -175,12 +136,10 @@ function handleStatusResponse(result: StatusChangeResult, res: Response) {
 }
 
 export async function confirmRental(req: Request, res: Response) {
-    const rentalId = checkRentalId(req.params.id);
+    const rentalId = checkId(req.params.id);
 
-    if (rentalId === null) {
-        return res.status(400).json({
-            error: 'Rental not found'
-        });
+    if (!rentalId) {
+        return sendError(res, 400, 'Rental not found');
     }
 
     const result = await confirmRentalService(rentalId);
@@ -189,12 +148,10 @@ export async function confirmRental(req: Request, res: Response) {
 }
 
 export async function rejectRental(req: Request, res: Response) {
-    const rentalId = checkRentalId(req.params.id);
+    const rentalId = checkId(req.params.id);
 
-    if (rentalId === null) {
-        return res.status(400).json({
-            error: 'Rental not found'
-        });
+    if (!rentalId) {
+        return sendError(res, 400, 'Rental not found');
     }
 
     const result = await rejectRentalService(rentalId);
@@ -203,12 +160,10 @@ export async function rejectRental(req: Request, res: Response) {
 }
 
 export async function activateRental(req: Request, res: Response) {
-    const rentalId = checkRentalId(req.params.id);
+    const rentalId = checkId(req.params.id);
 
-    if (rentalId === null) {
-        return res.status(400).json({
-            error: 'Rental not found'
-        });
+    if (!rentalId) {
+        return sendError(res, 400, 'Rental not found');
     }
 
     const result = await activateRentalService(rentalId);
@@ -217,12 +172,10 @@ export async function activateRental(req: Request, res: Response) {
 }
 
 export async function completeRental(req: Request, res: Response) {
-    const rentalId = checkRentalId(req.params.id);
+    const rentalId = checkId(req.params.id);
 
-    if (rentalId === null) {
-        return res.status(400).json({
-            error: 'Rental not found'
-        });
+    if (!rentalId) {
+        return sendError(res, 400, 'Rental not found');
     }
 
     const result = await completeRentalService(rentalId);
@@ -231,12 +184,10 @@ export async function completeRental(req: Request, res: Response) {
 }
 
 export async function cancelRental(req: Request, res: Response) {
-    const rentalId = checkRentalId(req.params.id);
+    const rentalId = checkId(req.params.id);
 
-    if (rentalId === null) {
-        return res.status(400).json({
-            error: 'Rental not found'
-        });
+    if (!rentalId) {
+        return sendError(res, 400, 'Rental not found');
     }
 
     const result = await cancelRentalService(rentalId);
@@ -249,21 +200,16 @@ async function updateRental(
     res: Response,
     managerRestrictions: boolean
 ) {
-    const rentalId = checkRentalId(req.params.id);
+    const rentalId = checkId(req.params.id);
 
-    if (rentalId === null) {
-        return res.status(400).json({
-            error: 'Invalid rental ID'
-        });
+    if (!rentalId) {
+        return sendError(res, 400, 'Rental not found');
     }
 
     const validation = updateRentalSchema.safeParse(req.body);
 
     if (!validation.success) {
-        return res.status(400).json({
-            error: 'Invalid rental data',
-            details: validation.error.issues
-        });
+        return sendError(res, 400, 'Invalid rental data', validation.error.issues);
     }
 
     const result = managerRestrictions
@@ -276,39 +222,25 @@ async function updateRental(
 
     switch (result.reason) {
         case 'RENTAL_NOT_FOUND':
-            return res.status(404).json({
-                error: 'Rental not found'
-            });
+            return sendError(res, 404, 'Rental not found');
 
         case 'USER_NOT_FOUND':
-            return res.status(404).json({
-                error: 'User not found'
-            });
+            return sendError(res, 404, 'User not found');
 
         case 'CAR_NOT_FOUND':
-            return res.status(404).json({
-                error: 'Car not found'
-            });
+            return sendError(res, 404, 'Car not found');
 
         case 'INVALID_DATES':
-            return res.status(400).json({
-                error: 'Invalid rental dates'
-            });
+            return sendError(res, 400, 'Invalid rental dates');
 
         case 'CAR_UNAVAILABLE':
-            return res.status(409).json({
-                error: 'Car unavailable'
-            });
+            return sendError(res, 409, 'Car unavailable');
 
         case 'DATES_UNAVAILABLE':
-            return res.status(409).json({
-                error: 'Dates unavailable'
-            });
+            return sendError(res, 409, 'Dates unavailable');
 
         case 'RENTAL_EDIT_NOT_ALLOWED':
-            return res.status(409).json({
-                error: 'Rental cannot be edited'
-            });
+            return sendError(res, 409, 'Rental cannot be edited');
     }
 }
 
@@ -324,36 +256,28 @@ export async function updateRentalManager(req: Request, res: Response) {
 // временное подтверждение оплаты
 export async function mockPayment(req: Request, res: Response) {
     if (!req.user) {
-        return res.status(401).json({
-            error: 'Ошибка авторизации'
-        })
+        return sendError(res, 401, 'Ошибка авторизации');
     }
 
     const rental_id = Number(req.params.id);
 
     if (!Number.isInteger(rental_id) || rental_id <= 0) {
-        return res.status(400).json({ error: 'Invalid rental id' });
+        return sendError(res, 400, 'Invalid rental id');
     }
 
     const result = await mockPaymentService(rental_id);
 
     if (!result.ok) {
         if (result.reason == 'RENTAL_NOT_FOUND') {
-            return res.status(404).json({
-                error: 'Rental not found'
-            });
+            return sendError(res, 404, 'Rental not found');
         }
 
         if (result.reason === 'PAYMENT_NOT_ALLOWED') {
-            return res.status(409).json({
-                error: 'Payment cannot be confirmed: invalid status or expired hold'
-            });
+            return sendError(res, 409, 'Payment cannot be confirmed: invalid status or expired hold');
         }
 
         if (result.reason === 'CAR_NOT_FOUND') {
-            return res.status(404).json({
-                error: 'Car not found'
-            });
+            return sendError(res, 404, 'Car not found');
         }
     }
 

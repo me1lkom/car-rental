@@ -8,7 +8,17 @@ import type { NewCar, UpdateCar, CarsFilter } from '../schemas/cars.schema.js';
 
 
 export async function getCars(filters: CarsFilter) {
-    return await findCars(filters);
+    const result = await findCars(filters);
+
+    return {
+        items: result.items,
+        pagination: {
+            total: result.total,
+            limit: filters.limit,
+            offset: filters.offset,
+            has_more: filters.offset + result.items.length < result.total
+        }
+    };
 }
 
 export async function createCar(car: NewCar) {
@@ -44,8 +54,8 @@ export async function getCarAttributes() {
 export async function findCarUnavailablePeriods(id: number) {
 
     const car = await getCarById(id);
-    
-    if(!car) {
+
+    if (!car) {
         return {
             ok: false,
             reason: 'CAR_NOT_FOUND'

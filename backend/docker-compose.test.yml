@@ -1,0 +1,68 @@
+name: car-rental-integration
+
+services:
+  postgres-test:
+    image: postgres:17
+
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: car_rental_test
+
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d:ro
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d car_rental_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend-test:
+    build: .
+
+    environment:
+      DB_HOST: postgres-test
+      DB_PORT: 5432
+      DB_USER: test_user
+      DB_PASSWORD: test_password
+      DB_NAME: car_rental_test
+
+      DATABASE_URL: postgresql://test_user:test_password@postgres-test:5432/car_rental_test
+
+      JWT_SECRET_KEY: integration-test-secret
+      ACCESS_TOKEN_TTL_SECONDS: 3600
+      REFRESH_TOKEN_TTL_SECONDS: 604800
+
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+
+    command: sh -c "npm run migrate -- up && node dist/index.js"
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/cars"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  integration-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.smoke
+
+    environment:
+      API_BASE_URL: http://backend-test:3000
+      JWT_SECRET_KEY: integration-test-secret
+
+      DB_HOST: postgres-test
+      DB_PORT: 5432
+      DB_USER: test_user
+      DB_PASSWORD: test_password
+      DB_NAME: car_rental_test
+
+    depends_on:
+      backend-test:
+        condition: service_healthy
+
+    command: npm run test:integration:runner

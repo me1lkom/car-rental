@@ -1,0 +1,66 @@
+name: car-rental-performance
+
+services:
+  postgres-perf:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: perf_user
+      POSTGRES_PASSWORD: perf_password_local_only
+      POSTGRES_DB: car_rental_perf
+    volumes:
+      - perf_postgres_data:/var/lib/postgresql/data
+      - ./db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U perf_user -d car_rental_perf"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  backend-perf:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:3002:3000"
+    volumes:
+      - ./scripts/seed-performance.mjs:/app/scripts/seed-performance.mjs:ro
+    environment:
+      DB_HOST: postgres-perf
+      DB_PORT: 5432
+      DB_USER: perf_user
+      DB_PASSWORD: perf_password_local_only
+      DB_NAME: car_rental_perf
+      DATABASE_URL: postgresql://perf_user:perf_password_local_only@postgres-perf:5432/car_rental_perf
+      JWT_SECRET_KEY: only-for-local-performance-testing
+      ACCESS_TOKEN_TTL_SECONDS: 3600
+      REFRESH_TOKEN_TTL_SECONDS: 604800
+      PERF_CARS: ${PERF_CARS:-10000}
+      PERF_USERS: ${PERF_USERS:-5000}
+      PERF_RENTALS: ${PERF_RENTALS:-100000}
+    depends_on:
+      postgres-perf:
+        condition: service_healthy
+    command: sh -c "npm run migrate -- up && node dist/index.js"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/cars?brand=does-not-exist"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  k6:
+    image: grafana/k6:latest
+    entrypoint: ["k6"]
+    volumes:
+      - ./tests/load/perf:/scripts:ro
+    environment:
+      API_BASE_URL: http://backend-perf:3000
+      PERF_EMAIL: perf-admin@example.invalid
+      PERF_PASSWORD: PerfAdmin2026!
+    depends_on:
+      backend-perf:
+        condition: service_healthy
+    profiles: ["load"]
+
+volumes:
+  perf_postgres_data:

@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg';
 import pool from '../db/database.js';
 import type { UpdateUser, NewUserRecord } from '../schemas/users.schema.js';
+import { withTransaction } from '../db/transaction.js';
 
 export async function getUsers() {
     const query = `
@@ -156,10 +157,8 @@ export async function unblockUser(id: number) {
 }
 
 export async function changeUserPassword(id: number, passwordHash: string) {
-    const client = await pool.connect();
 
-    try {
-        await client.query('BEGIN');
+    return withTransaction(async (client) => {
         const updatePasswordQuery = `
             UPDATE users
             SET password_hash = $2
@@ -170,7 +169,6 @@ export async function changeUserPassword(id: number, passwordHash: string) {
         const updatePasswordResult = await client.query(updatePasswordQuery, [id, passwordHash]);
 
         if (updatePasswordResult.rowCount === 0) {
-            await client.query('ROLLBACK');
             return null;
         }
 
@@ -181,17 +179,8 @@ export async function changeUserPassword(id: number, passwordHash: string) {
                 AND revoked_at IS NULL
         `;
 
-        const revokeSessionResult = await client.query(revokeSessionQuery, [id]);
-
-        await client.query('COMMIT');
         return updatePasswordResult.rows[0];
-    } catch (error) {
-        await client.query('ROLLBACK');
-        throw error;
-    } finally {
-        client.release();
-    }
-
+    })
 }
 
 export async function returnPassword(id: number) {
