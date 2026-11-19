@@ -15,6 +15,7 @@ import {
 } from '../services/rentals.service.js';
 import { createRentalSchema, updateRentalSchema } from '../schemas/rentals.schema.js';
 import { sendError } from '../middleware/error-handler.js';
+import { checkId } from "../utils/check-id.js";
 
 
 // Получение аренд
@@ -55,12 +56,13 @@ export async function getRentalById(req: Request, res: Response) {
 
     const user_id: number = req.user.user_id;
     const role = req.user.role;
-    const rental_id = Number(req.params.id);
+    const rentalId = checkId(req.params.id);
 
-    if (!Number.isInteger(rental_id) || rental_id <= 0) {
-        return sendError(res, 400, 'Invalid rental id');
+    if (!rentalId) {
+        return sendError(res, 400, 'Rental not found');
     }
-    const result = await getRentalByIdService(rental_id, role, user_id);
+
+    const result = await getRentalByIdService(rentalId, role, user_id);
 
     if (!result.ok) {
         if (result.reason === 'RENTAL_NOT_FOUND') {
@@ -118,22 +120,6 @@ export async function createRental(req: Request, res: Response) {
 
 
 // Изменение аренды
-
-function checkRentalId(rawId: unknown) {
-
-    if (typeof rawId !== 'string') {
-        return null;
-    }
-
-    const rentalId = Number(rawId);
-
-    if (!Number.isInteger(rentalId) || rentalId <= 0) {
-        return null
-    }
-
-    return rentalId;
-}
-
 type StatusChangeResult = Awaited<ReturnType<typeof confirmRentalService>>;
 
 function handleStatusResponse(result: StatusChangeResult, res: Response) {
@@ -150,9 +136,9 @@ function handleStatusResponse(result: StatusChangeResult, res: Response) {
 }
 
 export async function confirmRental(req: Request, res: Response) {
-    const rentalId = checkRentalId(req.params.id);
+    const rentalId = checkId(req.params.id);
 
-    if (rentalId === null) {
+    if (!rentalId) {
         return sendError(res, 400, 'Rental not found');
     }
 
@@ -162,9 +148,9 @@ export async function confirmRental(req: Request, res: Response) {
 }
 
 export async function rejectRental(req: Request, res: Response) {
-    const rentalId = checkRentalId(req.params.id);
+    const rentalId = checkId(req.params.id);
 
-    if (rentalId === null) {
+    if (!rentalId) {
         return sendError(res, 400, 'Rental not found');
     }
 
@@ -174,9 +160,9 @@ export async function rejectRental(req: Request, res: Response) {
 }
 
 export async function activateRental(req: Request, res: Response) {
-    const rentalId = checkRentalId(req.params.id);
+    const rentalId = checkId(req.params.id);
 
-    if (rentalId === null) {
+    if (!rentalId) {
         return sendError(res, 400, 'Rental not found');
     }
 
@@ -186,9 +172,9 @@ export async function activateRental(req: Request, res: Response) {
 }
 
 export async function completeRental(req: Request, res: Response) {
-    const rentalId = checkRentalId(req.params.id);
+    const rentalId = checkId(req.params.id);
 
-    if (rentalId === null) {
+    if (!rentalId) {
         return sendError(res, 400, 'Rental not found');
     }
 
@@ -198,9 +184,9 @@ export async function completeRental(req: Request, res: Response) {
 }
 
 export async function cancelRental(req: Request, res: Response) {
-    const rentalId = checkRentalId(req.params.id);
+    const rentalId = checkId(req.params.id);
 
-    if (rentalId === null) {
+    if (!rentalId) {
         return sendError(res, 400, 'Rental not found');
     }
 
@@ -214,10 +200,10 @@ async function updateRental(
     res: Response,
     managerRestrictions: boolean
 ) {
-    const rentalId = checkRentalId(req.params.id);
+    const rentalId = checkId(req.params.id);
 
-    if (rentalId === null) {
-        return sendError(res, 400, 'Invalid rental ID');
+    if (!rentalId) {
+        return sendError(res, 400, 'Rental not found');
     }
 
     const validation = updateRentalSchema.safeParse(req.body);

@@ -3,6 +3,7 @@ import { login as loginService, refreshToken as refreshTokenService, logout as l
 import { getUserById as getUserByIdService } from '../services/users.service.js';
 import { loginSchema } from "../schemas/auth.schema.js";
 import { sendError } from '../middleware/error-handler.js';
+import { setAuthCookies } from '../utils/auth-cookies.js';
 
 
 export async function login(req: Request, res: Response) {
@@ -20,31 +21,9 @@ export async function login(req: Request, res: Response) {
 
     const { accessToken, refreshToken, publicUser } = result;
 
-    const accessTtlSeconds = Number(process.env.ACCESS_TOKEN_TTL_SECONDS);
-    const refreshTtlSeconds = Number(process.env.REFRESH_TOKEN_TTL_SECONDS);
+    setAuthCookies(res, accessToken, refreshToken);
 
-    if (
-        !accessTtlSeconds ||
-        !refreshTtlSeconds
-    ) {
-        throw new Error('Invalid authentication configuration');
-    }
-
-    res.cookie('access_token', accessToken, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: false,
-        maxAge: accessTtlSeconds * 1000
-    });
-
-    res.cookie('refresh_token', refreshToken, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: false,
-        maxAge: refreshTtlSeconds * 1000
-    });
-
-    res.status(200).json(publicUser);
+    return res.status(200).json(publicUser);
 }
 
 export async function returnMe(req: Request, res: Response) {
@@ -84,29 +63,7 @@ export async function refreshToken(req: Request, res: Response) {
 
     const { accessToken, newRefreshToken } = result;
 
-    const accessTtlSeconds = Number(process.env.ACCESS_TOKEN_TTL_SECONDS);
-    const refreshTtlSeconds = Number(process.env.REFRESH_TOKEN_TTL_SECONDS);
-
-    if (
-        !accessTtlSeconds ||
-        !refreshTtlSeconds
-    ) {
-        throw new Error('Invalid authentication configuration');
-    }
-
-    res.cookie('access_token', accessToken, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: false,
-        maxAge: accessTtlSeconds * 1000
-    });
-
-    res.cookie('refresh_token', newRefreshToken, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: false,
-        maxAge: refreshTtlSeconds * 1000
-    });
+    setAuthCookies(res, accessToken, newRefreshToken);
 
     return res.sendStatus(204);
 }

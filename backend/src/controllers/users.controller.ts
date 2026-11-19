@@ -10,7 +10,7 @@ import {
 } from '../services/users.service.js'
 import { createUserSchema, updateUserSchema, passwordChangeSchema } from "../schemas/users.schema.js";
 import { sendError } from '../middleware/error-handler.js';
-
+import { checkId } from "../utils/check-id.js";
 
 export async function getUsers(req: Request, res: Response) {
     const users = await getUserService();
@@ -29,17 +29,17 @@ export async function createUser(req: Request, res: Response) {
 
     if (!creation.ok) {
         return sendError(res, 409, creation.reason === 'EMAIL_ALREADY_EXISTS'
-                ? 'Email already registered'
-                : 'Phone already registered');
+            ? 'Email already registered'
+            : 'Phone already registered');
     }
 
     return res.status(201).json(creation.user);
 }
 
 export async function getUserById(req: Request, res: Response) {
-    const id = Number(req.params.id);
+    const id = checkId(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!id) {
         return sendError(res, 400, 'Invalid user id');
     }
 
@@ -53,9 +53,9 @@ export async function getUserById(req: Request, res: Response) {
 }
 
 export async function updateUser(req: Request, res: Response) {
-    const id = Number(req.params.id);
+    const id = checkId(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!id) {
         return sendError(res, 400, 'Invalid user id');
     }
 
@@ -80,9 +80,9 @@ export async function updateUser(req: Request, res: Response) {
 
 
 export async function blockUser(req: Request, res: Response) {
-    const id = Number(req.params.id);
+    const id = checkId(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!id) {
         return sendError(res, 400, 'Invalid user id');
     }
 
@@ -98,9 +98,9 @@ export async function blockUser(req: Request, res: Response) {
 }
 
 export async function unblockUser(req: Request, res: Response) {
-    const id = Number(req.params.id);
+    const id = checkId(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!id) {
         return sendError(res, 400, 'Invalid user id');
     }
 
@@ -114,15 +114,15 @@ export async function unblockUser(req: Request, res: Response) {
 }
 
 export async function changeUserPassword(req: Request, res: Response) {
-    const id = Number(req.params.id);
-
     let result = passwordChangeSchema.safeParse(req.body);
 
     if (!result.success) {
         return sendError(res, 400, 'Invalid user data', result.error?.issues);
     }
 
-    if (!Number.isInteger(id) || id <= 0) {
+    const id = checkId(req.params.id);
+
+    if (!id) {
         return sendError(res, 400, 'Invalid user id');
     }
 
