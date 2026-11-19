@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
 import { Header } from "../components/Header"
-import { api, carImage, carName, formatPrice } from "../api"
+import { CarCard } from "../components/CarCard"
+import { DateFields } from "../components/DateFields"
+import { api } from "../api"
 
 const tabs = [
   ["", "Все"],
@@ -61,10 +62,7 @@ export function Home() {
           <form className="search-form" onSubmit={(event) => event.preventDefault()}>
             <p className="spec">Получение</p>
             <b>Москва</b>
-            <div className="two">
-              <label>Дата выдачи<input type="date" /></label>
-              <label>Дата возврата<input type="date" /></label>
-            </div>
+            <DateFields />
             <label>Класс
               <select name="rental_class_id" value={filter.rental_class_id} onChange={change}>
                 <option value="">Любой</option>
@@ -83,7 +81,7 @@ export function Home() {
         </div>
 
         <div className="section-head">
-          <p className="spec">{loading || error ? "" : "Найдено " + cars.length + " автомобилей"}</p>
+          <p className="spec">{!loading && !error ? "Найдено " + cars.length + " автомобилей" : ""}</p>
           <div className="filters">
             <select name="body_type_id" value={filter.body_type_id} onChange={change}>
               <option value="">Кузов</option>
@@ -108,21 +106,7 @@ export function Home() {
         )}
         {!loading && !error && (
           <section id="fleet" className="fleet">
-            {cars.map((car) => (
-              <article key={car.car_id} className="card">
-                <div className="photo">
-                  <img src={carImage(car)} alt={carName(car)} />
-                </div>
-                <div className="card-body">
-                  <h3>{carName(car)}</h3>
-                  <p className="spec">{car.year} · {car.body_type_name || "кузов"} · {car.seats ? car.seats + " мест" : "места"}</p>
-                  <div className="card-foot">
-                    <b>{formatPrice(car.price_per_day)} / сутки</b>
-                    <Link className="btn" to={"/cars/" + car.car_id}>Подробнее</Link>
-                  </div>
-                </div>
-              </article>
-            ))}
+            {cars.map((car) => <CarCard key={car.car_id} car={car} />)}
           </section>
         )}
       </main>

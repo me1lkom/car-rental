@@ -1,51 +1,17 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import toast from "react-hot-toast"
 import { Header } from "../components/Header"
-import { api, carImage, carName, daysBetween, formatDate, formatPrice, readUser } from "../api"
+import { PageState } from "../components/PageState"
+import { DateFields } from "../components/DateFields"
+import { api, carImage, carName, daysBetween, formatDate, formatPrice, translateError } from "../api"
+import { useCar } from "../hooks/useCar"
 
 export function Booking() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const user = readUser()
-  const [car, setCar] = useState(null)
-  const [periods, setPeriods] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+  const { car, periods, loading, error } = useCar(id)
   const [dateError, setDateError] = useState("")
-
-  useEffect(() => {
-    if (!user) {
-      navigate("/login")
-      return
-    }
-    setLoading(true)
-    api("/cars/" + id)
-      .then((data) => {
-        setCar(data)
-        setLoading(false)
-      })
-      .catch(() => {
-        setError("Машина не найдена")
-        setLoading(false)
-      })
-    api("/cars/" + id + "/availability")
-      .then((data) => setPeriods(data.unavailable_periods || []))
-      .catch(() => setPeriods([]))
-  }, [id])
-
-  if (loading) return <><Header /><main className="page"><article className="panel"><p>Загрузка…</p></article></main></>
-  if (error) return (
-    <>
-      <Header />
-      <main className="page">
-        <article className="panel">
-          <h1>{error}</h1>
-          <Link className="btn" to="/">В каталог</Link>
-        </article>
-      </main>
-    </>
-  )
 
   async function onSubmit(event) {
     event.preventDefault()
@@ -68,46 +34,41 @@ export function Booking() {
       toast.success("Заявка создана. Нужна предоплата в течение 15 минут")
       navigate("/done", { state: { rental, car } })
     } catch (err) {
-      const map = {
-        "Selected start date before now": "Дата начала не может быть в прошлом",
-        "Selected dates are unavailable": "Эти даты уже заняты",
-        "Car unavailable": "Машина сейчас недоступна",
-        "Car not found": "Машина не найдена",
-      }
-      toast.error(map[err.message] || err.message)
+      toast.error(translateError(err.message))
     }
   }
 
   return (
-    <>
-      <Header />
-      <main className="page">
-        <p className="eyebrow">Заявка</p>
-        <h1>Оформление бронирования</h1>
-        <p className="lead">Стоимость считает сервер. После отправки заявка держит машину 15 минут.</p>
-        <section className="split">
-          <form className="panel" onSubmit={onSubmit}>
-            <h2>Даты</h2>
-            <div className="two">
-              <label>Начало<input name="start" type="date" required /></label>
-              <label>Конец<input name="end" type="date" required /></label>
-            </div>
-            {dateError && <p className="error">{dateError}</p>}
-            <p className="spec">Водитель: {user?.name} {user?.surname}</p>
-            <p className="spec">{user?.phone}</p>
-            <button className="btn">Подтвердить</button>
-          </form>
-          <article className="panel summary">
-            <img src={carImage(car)} alt={carName(car)} />
-            <h2>{carName(car)}</h2>
-            <p className="price">{formatPrice(car.price_per_day)} / сутки</p>
-            <h3>Уже занято</h3>
-            {periods.length === 0 && <p className="spec">Свободных ограничений нет.</p>}
-            {periods.map((period) => <p key={period.start_date}>{formatDate(period.start_date)} — {formatDate(period.end_date)}</p>)}
-            <Link to={"/cars/" + car.car_id}>К машине</Link>
-          </article>
-        </section>
-      </main>
-    </>
+    <PageState loading={loading} error={error}>
+      {car && (
+        <>
+          <Header />
+          <main className="page">
+            <p className="eyebrow">Заявка</p>
+            <h1>Оформление бронирования</h1>
+            <p className="lead">Стоимость считает сервер. После отправки заявка держит машину 15 минут.</p>
+            <section className="split">
+              <form className="panel" onSubmit={onSubmit}>
+                <h2>Даты</h2>
+                <DateFields />
+                {dateError && <p className="error">{dateError}</p>}
+                <p className="spec">Водитель: {JSON.parse(localStorage.getItem("vela-user") || "null")?.name} {JSON.parse(localStorage.getItem("vela-user") || "null")?.surname}</p>
+                <p className="spec">{JSON.parse(localStorage.getItem("vela-user") || "null")?.phone}</p>
+                <button className="btn">Подтвердить</button>
+              </form>
+              <article className="panel summary">
+                <img src={carImage(car)} alt={carName(car)} />
+                <h2>{carName(car)}</h2>
+                <p className="price">{formatPrice(car.price_per_day)} / сутки</p>
+                <h3>Уже занято</h3>
+                {periods.length === 0 && <p className="spec">Свободных ограничений нет.</p>}
+                {periods.map((period) => <p key={period.start_date}>{formatDate(period.start_date)} — {formatDate(period.end_date)}</p>)}
+                <Link to={"/cars/" + car.car_id}>К машине</Link>
+              </article>
+            </section>
+          </main>
+        </>
+      )}
+    </PageState>
   )
 }

@@ -95,3 +95,14 @@ export function clearUser() {
 export function canManage(user) {
   return user?.role === "manager" || user?.role === "admin"
 }
+
+const ERROR_MAP = {
+  "Selected start date before now": "Дата начала не может быть в прошлом",
+  "Selected dates are unavailable": "Эти даты уже заняты",
+  "Car unavailable": "Машина сейчас недоступна",
+  "Car not found": "Машина не найдена",
+}
+
+export function translateError(message) {
+  return ERROR_MAP[message] || message
+}
