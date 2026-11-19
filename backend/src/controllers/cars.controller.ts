@@ -12,7 +12,7 @@ import {
 } from '../services/cars.service.js';
 import { createCarSchema, updateCarSchema, carsFilterSchema } from '../schemas/cars.schema.js';
 import { sendError } from '../middleware/error-handler.js';
-
+import { checkId } from "../utils/check-id.js";
 
 export async function getCars(req: Request, res: Response) {
     const result = carsFilterSchema.safeParse(req.query);
@@ -40,9 +40,9 @@ export async function createCar(req: Request, res: Response) {
 }
 
 export async function getCarById(req: Request, res: Response) {
-    const id = Number(req.params.id);
+    const id = checkId(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!id) {
         return sendError(res, 400, 'Invalid car id');
     }
 
@@ -56,9 +56,9 @@ export async function getCarById(req: Request, res: Response) {
 }
 
 export async function updateCar(req: Request, res: Response) {
-    const id = Number(req.params.id);
+    const id = checkId(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!id) {
         return sendError(res, 400, 'Invalid car id');
     }
 
@@ -91,9 +91,9 @@ export async function temporaryFindAllCars(req: Request, res: Response) {
 
 
 export async function deleteCar(req: Request, res: Response) {
-    const id = Number(req.params.id)
+    const id = checkId(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!id) {
         return sendError(res, 400, 'Invalid car id');
     }
 
@@ -108,9 +108,9 @@ export async function deleteCar(req: Request, res: Response) {
 
 
 export async function restoreCar(req: Request, res: Response) {
-    const id = Number(req.params.id)
+    const id = checkId(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!id) {
         return sendError(res, 400, 'Invalid car id');
     }
 
@@ -130,9 +130,9 @@ export async function getCarAttributes(req: Request, res: Response) {
 }
 
 export async function findCarUnavaliblePeriods(req: Request, res: Response) {
-    const id = Number(req.params.id)
+    const id = checkId(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!id) {
         return sendError(res, 400, 'Invalid car id');
     }
 
