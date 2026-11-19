@@ -7,17 +7,38 @@ export function Car() {
   const { id } = useParams()
   const [car, setCar] = useState(null)
   const [periods, setPeriods] = useState([])
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
   useEffect(() => {
-    api("/cars/" + id).then(setCar).catch((err) => setError(err.message))
+    setLoading(true)
+    setError("")
+    api("/cars/" + id)
+      .then((data) => {
+        setCar(data)
+        setLoading(false)
+      })
+      .catch((err) => {
+        setError(err.status === 404 ? "Машина не найдена" : "Не удалось загрузить машину")
+        setLoading(false)
+      })
     api("/cars/" + id + "/availability")
       .then((data) => setPeriods(data.unavailable_periods || []))
       .catch(() => setPeriods([]))
   }, [id])
 
-  if (error) return <><Header /><main className="page"><h1>{error}</h1></main></>
-  if (!car) return <><Header /><main className="page"><p>Загрузка…</p></main></>
+  if (loading) return <><Header /><main className="page"><article className="panel"><p>Загрузка…</p></article></main></>
+  if (error) return (
+    <>
+      <Header />
+      <main className="page">
+        <article className="panel">
+          <h1>{error}</h1>
+          <Link className="btn" to="/">В каталог</Link>
+        </article>
+      </main>
+    </>
+  )
 
   const chips = [
     car.body_type_name, car.drive_type_name, car.rental_class_name,

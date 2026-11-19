@@ -9,12 +9,15 @@ export function Account() {
   const [user, setUser] = useState(null)
   const [orders, setOrders] = useState([])
   const [tab, setTab] = useState("orders")
+  const [ordersError, setOrdersError] = useState("")
 
   useEffect(() => {
     api("/auth/me")
       .then((profile) => { saveUser(profile); setUser(profile) })
       .catch(() => navigate("/login"))
-    api("/rentals/my").then(setOrders).catch(() => setOrders([]))
+    api("/rentals/my")
+      .then(setOrders)
+      .catch(() => setOrdersError("Не удалось загрузить заявки"))
   }, [])
 
   async function logout() {
@@ -24,7 +27,7 @@ export function Account() {
     navigate("/login")
   }
 
-  if (!user) return <><Header /><main className="page"><p>Загрузка…</p></main></>
+  if (!user) return <><Header /><main className="page"><article className="panel"><p>Загрузка…</p></article></main></>
 
   return (
     <>
@@ -42,7 +45,8 @@ export function Account() {
         {tab === "orders" ? (
           <section>
             <h1>Мои заявки</h1>
-            {orders.length === 0 && (
+            {ordersError && <article className="panel"><p className="error">{ordersError}</p></article>}
+            {!ordersError && orders.length === 0 && (
               <article className="panel empty">
                 <h2>Заявок пока нет</h2>
                 <p className="lead">Выберите машину в каталоге и отправьте заявку.</p>

@@ -16,6 +16,7 @@ export function Home() {
   const [attrs, setAttrs] = useState(null)
   const [filter, setFilter] = useState({ rental_class_id: "", body_type_id: "", brand: "" })
   const [tab, setTab] = useState("")
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
   useEffect(() => {
@@ -23,13 +24,21 @@ export function Home() {
   }, [])
 
   useEffect(() => {
+    setLoading(true)
+    setError("")
     const query = new URLSearchParams()
     Object.entries(filter).forEach(([key, value]) => {
       if (value) query.set(key, value)
     })
     api(query.toString() ? "/cars?" + query : "/cars")
-      .then(setCars)
-      .catch(() => setError("Каталог временно недоступен"))
+      .then((data) => {
+        setCars(data)
+        setLoading(false)
+      })
+      .catch(() => {
+        setError("Каталог временно недоступен. Проверьте, что сервер запущен.")
+        setLoading(false)
+      })
   }, [filter])
 
   function pickClass(name) {
@@ -74,7 +83,7 @@ export function Home() {
         </div>
 
         <div className="section-head">
-          <p className="spec">{error ? "" : "Найдено " + cars.length + " автомобилей"}</p>
+          <p className="spec">{loading || error ? "" : "Найдено " + cars.length + " автомобилей"}</p>
           <div className="filters">
             <select name="body_type_id" value={filter.body_type_id} onChange={change}>
               <option value="">Кузов</option>
@@ -83,25 +92,39 @@ export function Home() {
             <input name="brand" value={filter.brand} onChange={change} placeholder="Марка" />
           </div>
         </div>
-        {error && <p className="error">{error}</p>}
-        {!error && cars.length === 0 && <p>Машин по этому фильтру нет.</p>}
-        <section id="fleet" className="fleet">
-          {cars.map((car) => (
-            <article key={car.car_id} className="card">
-              <div className="photo">
-                <img src={carImage(car)} alt={carName(car)} />
-              </div>
-              <div className="card-body">
-                <h3>{carName(car)}</h3>
-                <p className="spec">{car.year} · {car.body_type_name || "кузов"} · {car.seats ? car.seats + " мест" : "места"}</p>
-                <div className="card-foot">
-                  <b>{formatPrice(car.price_per_day)} / сутки</b>
-                  <Link className="btn" to={"/cars/" + car.car_id}>Подробнее</Link>
+
+        {loading && <article className="panel"><p>Загрузка каталога…</p></article>}
+        {error && (
+          <article className="panel">
+            <h2>Ошибка сервера</h2>
+            <p className="error">{error}</p>
+          </article>
+        )}
+        {!loading && !error && cars.length === 0 && (
+          <article className="panel">
+            <h2>Машин не найдено</h2>
+            <p className="lead">По этому фильтру ничего нет. Сбросьте фильтры или выберите другой класс.</p>
+          </article>
+        )}
+        {!loading && !error && (
+          <section id="fleet" className="fleet">
+            {cars.map((car) => (
+              <article key={car.car_id} className="card">
+                <div className="photo">
+                  <img src={carImage(car)} alt={carName(car)} />
                 </div>
-              </div>
-            </article>
-          ))}
-        </section>
+                <div className="card-body">
+                  <h3>{carName(car)}</h3>
+                  <p className="spec">{car.year} · {car.body_type_name || "кузов"} · {car.seats ? car.seats + " мест" : "места"}</p>
+                  <div className="card-foot">
+                    <b>{formatPrice(car.price_per_day)} / сутки</b>
+                    <Link className="btn" to={"/cars/" + car.car_id}>Подробнее</Link>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </section>
+        )}
       </main>
     </>
   )

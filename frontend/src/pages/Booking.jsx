@@ -10,22 +10,53 @@ export function Booking() {
   const user = readUser()
   const [car, setCar] = useState(null)
   const [periods, setPeriods] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [dateError, setDateError] = useState("")
 
   useEffect(() => {
-    if (!user) navigate("/login")
-    api("/cars/" + id).then(setCar).catch(() => toast.error("Машина не найдена"))
+    if (!user) {
+      navigate("/login")
+      return
+    }
+    setLoading(true)
+    api("/cars/" + id)
+      .then((data) => {
+        setCar(data)
+        setLoading(false)
+      })
+      .catch(() => {
+        setError("Машина не найдена")
+        setLoading(false)
+      })
     api("/cars/" + id + "/availability")
       .then((data) => setPeriods(data.unavailable_periods || []))
       .catch(() => setPeriods([]))
   }, [id])
 
-  if (!car) return <><Header /><main className="page"><p>Загрузка…</p></main></>
+  if (loading) return <><Header /><main className="page"><article className="panel"><p>Загрузка…</p></article></main></>
+  if (error) return (
+    <>
+      <Header />
+      <main className="page">
+        <article className="panel">
+          <h1>{error}</h1>
+          <Link className="btn" to="/">В каталог</Link>
+        </article>
+      </main>
+    </>
+  )
 
   async function onSubmit(event) {
     event.preventDefault()
+    setDateError("")
     const data = Object.fromEntries(new FormData(event.target))
+    if (!data.start || !data.end) {
+      setDateError("Укажите обе даты")
+      return
+    }
     if (daysBetween(data.start, data.end) < 1) {
-      toast.error("Проверьте даты")
+      setDateError("Дата окончания должна быть не раньше даты начала")
       return
     }
     try {
@@ -36,14 +67,14 @@ export function Booking() {
       })
       toast.success("Заявка создана. Нужна предоплата в течение 15 минут")
       navigate("/done", { state: { rental, car } })
-    } catch (error) {
+    } catch (err) {
       const map = {
         "Selected start date before now": "Дата начала не может быть в прошлом",
         "Selected dates are unavailable": "Эти даты уже заняты",
         "Car unavailable": "Машина сейчас недоступна",
         "Car not found": "Машина не найдена",
       }
-      toast.error(map[error.message] || error.message)
+      toast.error(map[err.message] || err.message)
     }
   }
 
@@ -61,6 +92,7 @@ export function Booking() {
               <label>Начало<input name="start" type="date" required /></label>
               <label>Конец<input name="end" type="date" required /></label>
             </div>
+            {dateError && <p className="error">{dateError}</p>}
             <p className="spec">Водитель: {user?.name} {user?.surname}</p>
             <p className="spec">{user?.phone}</p>
             <button className="btn">Подтвердить</button>
