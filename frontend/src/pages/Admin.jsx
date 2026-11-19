@@ -21,7 +21,9 @@ export function Admin() {
   const [tab, setTab] = useState("cars")
 
   function load() {
-    api("/cars").then(setCars).catch((error) => toast.error(error.message))
+    api("/cars")
+      .then((data) => setCars(data?.items || []))
+      .catch((error) => toast.error(error.message))
     api("/rentals").then((data) => setRentals(data.items || [])).catch(() => setRentals([]))
     if (user?.role === "admin") api("/users").then(setUsers).catch(() => setUsers([]))
   }

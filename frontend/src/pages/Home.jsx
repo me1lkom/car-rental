@@ -25,22 +25,24 @@ export function Home() {
   }, [])
 
   useEffect(() => {
-    setLoading(true)
-    setError("")
-    const query = new URLSearchParams()
-    Object.entries(filter).forEach(([key, value]) => {
-      if (value) query.set(key, value)
+  setLoading(true)
+  setError("")
+  const query = new URLSearchParams()
+  Object.entries(filter).forEach(([key, value]) => {
+    if (value) query.set(key, value)
+  })
+  api(query.toString() ? "/cars?" + query : "/cars")
+    .then((data) => {
+      const list = data?.items || []
+      setCars(list)
+      setLoading(false)
     })
-    api(query.toString() ? "/cars?" + query : "/cars")
-      .then((data) => {
-        setCars(data)
-        setLoading(false)
-      })
-      .catch(() => {
-        setError("Каталог временно недоступен. Проверьте, что сервер запущен.")
-        setLoading(false)
-      })
-  }, [filter])
+    .catch(() => {
+      setError("Каталог временно недоступен. Проверьте, что сервер запущен.")
+      setCars([])
+      setLoading(false)
+    })
+}, [filter])
 
   function pickClass(name) {
     setTab(name)
