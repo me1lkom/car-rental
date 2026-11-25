@@ -3,7 +3,7 @@ import type { NewCar, UpdateCar, CarsFilter } from '../schemas/cars.schema.js';
 
 
 export async function findCars(filters: CarsFilter) {
-    const conditions: string[] = ['c.deleted_at IS NULL'];
+    const conditions: string[] = [];
     const values: (string | number)[] = [];
 
     function addFilter(column: string, value?: string | number) {
@@ -12,6 +12,8 @@ export async function findCars(filters: CarsFilter) {
         values.push(value);
         conditions.push(`${column} = $${values.length}`);
     }
+
+    addFilter('c.car_id', filters.car_id);
 
     addFilter('c.brand', filters.brand);
     addFilter('c.model', filters.model);
@@ -26,10 +28,35 @@ export async function findCars(filters: CarsFilter) {
     addFilter('c.seats', filters.seats);
     addFilter('c.doors', filters.doors);
 
+    if (filters.deleted !== undefined) {
+        conditions.push(
+            filters.deleted
+                ? 'c.deleted_at IS NOT NULL'
+                : 'c.deleted_at IS NULL'
+        );
+    }
+
+    if (filters.search !== undefined) {
+        values.push(`%${filters.search}%`);
+
+        const param = `$${values.length}`;
+
+        conditions.push(`(
+        CONCAT_WS(' ', c.brand, c.model) ILIKE ${param}
+        OR c.license_plate ILIKE ${param}
+        OR c.year::text ILIKE ${param}
+        OR c.car_id::text ILIKE ${param}
+    )`);
+    }
+
+    const whereClause = conditions.length > 0
+        ? `WHERE ${conditions.join(' AND ')}`
+        : '';
+
     const countQuery = `
         SELECT COUNT(*)::int AS total
         FROM cars AS c
-        WHERE ${conditions.join(' AND ')}
+        ${whereClause}
     `;
 
     const countResult = await pool.query(countQuery, values);
@@ -58,7 +85,7 @@ export async function findCars(filters: CarsFilter) {
             ON c.transmission_id = t.transmission_id
         LEFT JOIN fuel_types AS ft
             ON c.fuel_type_id = ft.fuel_type_id
-        WHERE ${conditions.join(' AND ')}
+        ${whereClause}
         ORDER BY c.car_id
         LIMIT $${limitParam}
         OFFSET $${offsetParam}
@@ -120,7 +147,7 @@ export async function createCar(car: NewCar) {
     return result.rows[0];
 }
 
-export async function findCarsById(id: number) {
+export async function findCarsById(id: number, includeDeleted = false) {
     const query = `
         SELECT 
             c.*,
@@ -140,7 +167,8 @@ export async function findCarsById(id: number) {
             ON c.transmission_id = t.transmission_id
         LEFT JOIN fuel_types AS ft
             ON c.fuel_type_id = ft.fuel_type_id
-        WHERE car_id = $1 AND deleted_at IS NULL
+        WHERE c.car_id = $1
+            ${includeDeleted ? '' : 'AND c.deleted_at IS NULL'}
     `
 
     const result = await pool.query(query, [id]);

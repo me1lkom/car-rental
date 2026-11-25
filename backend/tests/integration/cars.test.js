@@ -219,4 +219,83 @@ describe('Cars API', () => {
         expect(result.rows[0].total).toBe(0);
     });
 
+    test('GET /cars — текстовый поиск', async () => {
+        const car = await prepareCar();
+
+        const response = await request(BASE_URL)
+            .get('/cars')
+            .query({
+                search: `${car.brand} ${car.model}`.toUpperCase()
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toHaveLength(1);
+        expect(response.body.pagination.total).toBe(1);
+        expect(response.body.items[0].car_id).toBe(car.car_id);
+    });
+
+    test('GET /cars — удалённые автомобили недоступны', async () => {
+        const car = await prepareCar();
+
+        await db.query(
+            'UPDATE cars SET deleted_at = NOW() WHERE car_id = $1',
+            [car.car_id]
+        );
+
+        const response = await request(BASE_URL)
+            .get('/cars')
+            .query({
+                car_id: car.car_id,
+                deleted: true
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toHaveLength(0);
+        expect(response.body.pagination.total).toBe(0);
+    });
+
+    test('GET /cars/admin — получение удалённых автомобилей', async () => {
+        const car = await prepareCar();
+
+        await db.query(
+            'UPDATE cars SET deleted_at = NOW() WHERE car_id = $1',
+            [car.car_id]
+        );
+
+        const response = await request(BASE_URL)
+            .get('/cars/admin')
+            .set('Cookie', adminCookie)
+            .query({
+                car_id: car.car_id,
+                deleted: true
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toHaveLength(1);
+        expect(response.body.pagination.total).toBe(1);
+        expect(response.body.items[0].car_id).toBe(car.car_id);
+        expect(response.body.items[0].deleted_at).not.toBeNull();
+
+        const detail = await request(BASE_URL)
+            .get(`/cars/${car.car_id}/admin`)
+            .set('Cookie', adminCookie);
+
+        expect(detail.status).toBe(200);
+        expect(detail.body.car_id).toBe(car.car_id);
+        expect(detail.body.deleted_at).not.toBeNull();
+    });
+
+    test('Административные маршруты без авторизации — 401', async () => {
+        const car = await prepareCar();
+
+        const list = await request(BASE_URL)
+            .get('/cars/admin');
+
+        expect(list.status).toBe(401);
+
+        const detail = await request(BASE_URL)
+            .get(`/cars/${car.car_id}/admin`);
+
+        expect(detail.status).toBe(401);
+    });
 });

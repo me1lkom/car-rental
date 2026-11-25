@@ -25,8 +25,8 @@ export async function createCar(car: NewCar) {
     return await createCarRepository(car);
 }
 
-export async function getCarById(id: number) {
-    return await findCarsById(id);
+export async function getCarById(id: number, includeDeleted = false) {
+    return await findCarsById(id, includeDeleted);
 }
 
 export async function updateCar(id: number, updates: UpdateCar) {

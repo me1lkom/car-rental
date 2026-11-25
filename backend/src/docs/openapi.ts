@@ -131,6 +131,34 @@ const rentalQueryParameters = [
     })
 ];
 
+const carQueryParameters = [
+    query('car_id', positiveId),
+    query('brand', str),
+    query('model', str),
+    query('year', positiveId),
+    query('status', str),
+    query('body_type_id', positiveId),
+    query('drive_type_id', positiveId),
+    query('rental_class_id', positiveId),
+    query('transmission_id', positiveId),
+    query('fuel_type_id', positiveId),
+    query('seats', {
+        type: 'integer', minimum: 2, maximum: 9
+    }),
+    query('doors', {
+        type: 'integer', minimum: 2, maximum: 6
+    }),
+    query('search', {
+        type: 'string', minLength: 1, maxLength: 100
+    }, 'Поиск по марке, модели, госномеру, году и ID'),
+    query('limit', {
+        type: 'integer', minimum: 1, maximum: 100, default: 20
+    }),
+    query('offset', {
+        type: 'integer', minimum: 0, default: 0
+    })
+];
+
 export const openapiDocument = {
     openapi: '3.0.3',
     info: {
@@ -359,17 +387,12 @@ export const openapiDocument = {
         },
         '/cars': {
             get: endpoint({
-                tag: 'Cars', summary: 'Каталог автомобилей',
-                parameters: [
-                    query('brand', str), query('model', str), query('year', positiveId),
-                    query('status', str), query('body_type_id', positiveId),
-                    query('drive_type_id', positiveId), query('rental_class_id', positiveId),
-                    query('transmission_id', positiveId), query('fuel_type_id', positiveId),
-                    query('seats', { type: 'integer', minimum: 2, maximum: 9 }),
-                    query('doors', { type: 'integer', minimum: 2, maximum: 6 }),
-                    query('limit', { type: 'integer', minimum: 1, maximum: 100, default: 20 }),
-                    query('offset', { type: 'integer', minimum: 0, default: 0 })
-                ], response: schemaRef('CarList'), errors: [400]
+                tag: 'Cars',
+                summary: 'Каталог автомобилей',
+                description: 'Возвращает только неудалённые автомобили.',
+                parameters: carQueryParameters,
+                response: schemaRef('CarList'),
+                errors: [400]
             }),
             post: endpoint({
                 tag: 'Cars', summary: 'Добавить автомобиль (manager/admin)', security: 'cookieAuth',
@@ -417,6 +440,33 @@ export const openapiDocument = {
                     car_id: positiveId,
                     unavailable_periods: arrayOf(objectOf({ start_date: date, end_date: date }))
                 }, ['car_id', 'unavailable_periods']), errors: [400, 404]
+            })
+        },
+        '/cars/admin': {
+            get: endpoint({
+                tag: 'Cars',
+                summary: 'Управление автопарком (admin)',
+                description: 'Возвращает все автомобили, включая удалённые.',
+                security: 'cookieAuth',
+                parameters: [
+                    ...carQueryParameters,
+                    query('deleted', {
+                        type: 'boolean'
+                    }, 'true — удалённые, false — неудалённые, без параметра — все')
+                ],
+                response: schemaRef('CarList'),
+                errors: [400, 401, 403]
+            })
+        },
+        '/cars/{id}/admin': {
+            get: endpoint({
+                tag: 'Cars',
+                summary: 'Автомобиль по ID (admin)',
+                description: 'Позволяет получать в том числе удалённые автомобили.',
+                security: 'cookieAuth',
+                parameters: [idParameter],
+                response: schemaRef('Car'),
+                errors: [400, 401, 403, 404]
             })
         },
         '/rentals': {
