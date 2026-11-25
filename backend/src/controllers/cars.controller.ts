@@ -15,7 +15,10 @@ import { sendError } from '../middleware/error-handler.js';
 import { checkId } from "../utils/check-id.js";
 
 export async function getCars(req: Request, res: Response) {
-    const result = carsFilterSchema.safeParse(req.query);
+    const result = carsFilterSchema.safeParse({
+        ...req.query,
+        deleted: 'false'
+    });
 
     if (!result.success) {
         return sendError(res, 400, 'Invalid car filters', result.error.issues);
@@ -146,4 +149,35 @@ export async function findCarUnavaliblePeriods(req: Request, res: Response) {
         car_id: id,
         unavailable_periods: result.periods
     });
+}
+
+export async function getAdminCars(req: Request, res: Response) {
+    const result = carsFilterSchema.safeParse(req.query);
+
+    if (!result.success) {
+        return sendError(
+            res, 400, 'Invalid car filters',
+            result.error.issues
+        );
+    }
+
+    const cars = await getCarsService(result.data);
+
+    return res.status(200).json(cars);
+}
+
+export async function getAdminCarById(req: Request, res: Response) {
+    const id = checkId(req.params.id);
+
+    if (!id) {
+        return sendError(res, 400, 'Invalid car id');
+    }
+
+    const car = await getCarByIdService(id, true);
+
+    if (!car) {
+        return sendError(res, 404, 'Car not found');
+    }
+
+    return res.status(200).json(car);
 }

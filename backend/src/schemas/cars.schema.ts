@@ -39,6 +39,8 @@ const queryNonNegativeInt = z.string()
     .pipe(z.number().int().nonnegative());
 
 export const carsFilterSchema = z.object({
+    car_id: queryPositiveInt.optional(),
+
     brand: z.string().min(1).optional(),
     model: z.string().min(1).optional(),
     year: queryPositiveInt.optional(),
@@ -63,9 +65,15 @@ export const carsFilterSchema = z.object({
     limit: queryPositiveInt
         .pipe(z.number().max(100))
         .default(20),
-    
+
     offset: queryNonNegativeInt
-        .default(0)
+        .default(0),
+
+    search: z.string().trim().min(1).max(100).optional(),
+
+    deleted: z.enum(['true', 'false'])
+        .transform(value => value === 'true')
+        .optional(),
 });
 
 export type CarsFilter = z.infer<typeof carsFilterSchema>;
