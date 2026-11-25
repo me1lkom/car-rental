@@ -1,26 +1,85 @@
 import type { PoolClient } from 'pg';
 import pool from '../db/database.js';
-import type { UpdateUser, NewUserRecord } from '../schemas/users.schema.js';
+import type { UpdateUser, NewUserRecord, UsersFilter } from '../schemas/users.schema.js';
 import { withTransaction } from '../db/transaction.js';
 
-export async function getUsers() {
-    const query = `
-        SELECT 
+export async function getUsers(filters: UsersFilter) {
+    const conditions: string[] = [];
+    const values: (string | number)[] = [];
+
+    function addFilter(column: string, value?: string | number) {
+        if (value === undefined) return;
+
+        values.push(value);
+        conditions.push(`${column} = $${values.length}`);
+    }
+
+    addFilter('u.user_id', filters.user_id);
+    addFilter('r.name', filters.role);
+
+    if (filters.blocked !== undefined) {
+        conditions.push(
+            filters.blocked
+                ? 'u.blocked_at IS NOT NULL'
+                : 'u.blocked_at IS NULL'
+        );
+    }
+
+    if (filters.search !== undefined) {
+        values.push(`%${filters.search}%`);
+
+        const param = `$${values.length}`;
+
+        conditions.push(`(
+            CONCAT_WS(' ', u.name, u.surname) ILIKE ${param}
+            OR CONCAT_WS(' ', u.surname, u.name) ILIKE ${param}
+            OR u.email ILIKE ${param}
+            OR u.phone ILIKE ${param}
+            OR u.user_id::text ILIKE ${param}
+        )`);
+    }
+
+    const whereClause = conditions.length > 0
+        ? `WHERE ${conditions.join(' AND ')}`
+        : '';
+
+    const limitParam = values.length + 1;
+    const offsetParam = values.length + 2;
+
+    const paginationValues = [
+        ...values,
+        filters.limit,
+        filters.offset
+    ];
+
+    const usersResult = await pool.query(`
+        SELECT
             u.user_id,
             u.name,
             u.surname,
             u.email,
             u.phone,
-            r.name AS role, 
+            r.name AS role,
             u.created_at,
             u.blocked_at
         FROM users u
         JOIN roles r ON u.role_id = r.role_id
-    `
+        ${whereClause}
+        ORDER BY u.user_id DESC
+        LIMIT $${limitParam} OFFSET $${offsetParam}
+    `, paginationValues);
 
-    const result = await pool.query(query);
+    const countResult = await pool.query(`
+        SELECT COUNT(*) AS total
+        FROM users u
+        JOIN roles r ON u.role_id = r.role_id
+        ${whereClause}
+    `, values);
 
-    return result.rows;
+    return {
+        users: usersResult.rows,
+        total: Number(countResult.rows[0].total)
+    };
 }
 
 export async function createUser(user: NewUserRecord) {
@@ -68,7 +127,7 @@ export async function getUserById(id: number) {
             u.blocked_at
         FROM users u
         JOIN roles r ON u.role_id = r.role_id
-        WHERE u.user_id = $1 AND u.blocked_at IS NULL
+        WHERE u.user_id = $1
     `
 
     const result = await pool.query(query, [id]);
@@ -178,6 +237,8 @@ export async function changeUserPassword(id: number, passwordHash: string) {
             WHERE user_id = $1 AND expire_at > NOW()
                 AND revoked_at IS NULL
         `;
+
+        await client.query(revokeSessionQuery, [id]);
 
         return updatePasswordResult.rows[0];
     })

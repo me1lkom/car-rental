@@ -1,22 +1,32 @@
 
-import type { NewUser, UpdateUser, NewUserRecord, PasswordChange } from '../schemas/users.schema.js';
+import type { NewUser, UpdateUser, NewUserRecord, PasswordChange, UsersFilter } from '../schemas/users.schema.js';
 import {
-    getUsers as getUsersRepository, 
+    getUsers as getUsersRepository,
     createUser as createUserRepository,
-    getUserById as getUserByIdRepository, 
+    getUserById as getUserByIdRepository,
     updateUser as updateUserRepository,
-    blockUser as blockUserRepository, 
+    blockUser as blockUserRepository,
     deleteSession as deleteSessionRepository,
     unblockUser as unblockUserRepository,
-    changeUserPassword as changeUserPasswordRepository, 
+    changeUserPassword as changeUserPasswordRepository,
     returnPassword as returnPasswordRepository
 } from '../repositories/users.repository.js';
 import bcrypt from 'bcrypt';
 import { withTransaction } from '../db/transaction.js';
 
 
-export async function getUsers() {
-    return await getUsersRepository();
+export async function getUsers(filters: UsersFilter) {
+    const result = await getUsersRepository(filters);
+
+    return {
+        items: result.users,
+        pagination: {
+            total: result.total,
+            limit: filters.limit,
+            offset: filters.offset,
+            has_more: filters.offset + result.users.length < result.total
+        }
+    };
 }
 
 export async function createUser(user: NewUser) {

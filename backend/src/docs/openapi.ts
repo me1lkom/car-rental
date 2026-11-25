@@ -173,6 +173,15 @@ export const openapiDocument = {
                 created_at: { type: 'string', format: 'date-time' },
                 blocked_at: { type: 'string', nullable: true, format: 'date-time' }
             }, ['user_id', 'name', 'surname', 'email', 'phone']),
+            UserList: objectOf({
+                items: arrayOf(schemaRef('User')),
+                pagination: objectOf({
+                    total: int,
+                    limit: int,
+                    offset: int,
+                    has_more: { type: 'boolean' }
+                }, ['total', 'limit', 'offset', 'has_more'])
+            }, ['items', 'pagination']),
             Login: objectOf({
                 email: { type: 'string', format: 'email' },
                 password: { type: 'string', format: 'password', minLength: 8 }
@@ -270,8 +279,38 @@ export const openapiDocument = {
         },
         '/users': {
             get: endpoint({
-                tag: 'Users', summary: 'Список пользователей (admin)', security: 'cookieAuth',
-                response: arrayOf(schemaRef('User')), errors: [401, 403]
+                tag: 'Users',
+                summary: 'Список пользователей с фильтрацией и пагинацией (admin)',
+                description: 'Возвращает пользователя независимо от состояния блокировки.',
+                security: 'cookieAuth',
+                parameters: [
+                    query('user_id', positiveId, 'ID пользователя'),
+                    query('role', {
+                        type: 'string',
+                        enum: ['client', 'manager', 'admin']
+                    }, 'Роль пользователя'),
+                    query('blocked', {
+                        type: 'boolean'
+                    }, 'Состояние блокировки'),
+                    query('search', {
+                        type: 'string',
+                        minLength: 1,
+                        maxLength: 100
+                    }, 'Поиск по имени, фамилии, email, телефону и ID'),
+                    query('limit', {
+                        type: 'integer',
+                        minimum: 1,
+                        maximum: 100,
+                        default: 50
+                    }),
+                    query('offset', {
+                        type: 'integer',
+                        minimum: 0,
+                        default: 0
+                    })
+                ],
+                response: schemaRef('UserList'),
+                errors: [400, 401, 403]
             }),
             post: endpoint({
                 tag: 'Users', summary: 'Создание пользователя (admin)', security: 'cookieAuth',
