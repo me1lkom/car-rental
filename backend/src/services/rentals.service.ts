@@ -1,6 +1,5 @@
 import {
     getRentals as getRentalsRepository,
-    getMyRentals as getMyRentalsRepository,
     getRentalById as getRentalByIdRepository,
     getUserRentalById as getUserRentalByIdRepository,
     getCarPricePerDay as getCarPricePerDayRepository,
@@ -15,28 +14,36 @@ import {
     getRentalForUpdate as getRentalForUpdateRepository,
     rentalUserExists as rentalUserExistsRepository
 } from '../repositories/rentals.repository.js';
-import type { NewRental, NewRentalRecord, UpdateRentalData } from '../schemas/rentals.schema.js'
+import type { NewRental, NewRentalRecord, UpdateRentalData, RentalsFilter } from '../schemas/rentals.schema.js'
 import { withTransaction } from '../db/transaction.js';
 
 
-export async function getRentals(limit: number, offset: number) {
-    const result = await getRentalsRepository(limit, offset);
+export async function getRentals(filters: RentalsFilter) {
+    const result = await getRentalsRepository(filters);
 
     return {
         items: result.rentals,
         pagination: {
             total: result.total,
-            limit,
-            offset,
-            has_more: offset + result.rentals.length < result.total
+            limit: filters.limit,
+            offset: filters.offset,
+            has_more: filters.offset + result.rentals.length < result.total
         }
     };
 }
 
-export async function getMyRentals(user_id: number) {
-    const rentals = await getMyRentalsRepository(user_id);
+export async function getMyRentals(filters: RentalsFilter) {
+    const result = await getRentalsRepository(filters);
 
-    return rentals;
+    return {
+        items: result.rentals,
+        pagination: {
+            total: result.total,
+            limit: filters.limit,
+            offset: filters.offset,
+            has_more: filters.offset + result.rentals.length < result.total
+        }
+    };
 }
 
 export async function getRentalById(rental_id: number, role: string, user_id: number) {

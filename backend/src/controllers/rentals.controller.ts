@@ -13,7 +13,7 @@ import {
     updateRentalAdmin as updateRentalAdminService,
     updateRentalManager as updateRentalManagerService
 } from '../services/rentals.service.js';
-import { createRentalSchema, updateRentalSchema } from '../schemas/rentals.schema.js';
+import { createRentalSchema, updateRentalSchema, rentalsFilterSchema } from '../schemas/rentals.schema.js';
 import { sendError } from '../middleware/error-handler.js';
 import { checkId } from "../utils/check-id.js";
 
@@ -21,18 +21,15 @@ import { checkId } from "../utils/check-id.js";
 // Получение аренд
 
 export async function getRentals(req: Request, res: Response) {
-    const limit = Number(req.query.limit ?? 50);
-    const offset = Number(req.query.offset ?? 0);
+    const validations = rentalsFilterSchema.safeParse(req.query);
 
-    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
-        return sendError(res, 400, 'Invalid limit');
+    if (!validations.success) {
+        return sendError(
+            res, 400, 'Invalid query parameters',
+            validations.error.issues
+        );
     }
-
-    if (!Number.isInteger(offset) || offset < 0) {
-        return sendError(res, 400, 'Invalid offset');
-    }
-
-    const result = await getRentalsService(limit, offset);
+    const result = await getRentalsService(validations.data);
 
     return res.status(200).json(result);
 }
@@ -42,9 +39,19 @@ export async function getMyRentals(req: Request, res: Response) {
         return sendError(res, 401, 'Ошибка авторизации');
     }
 
-    const user_id: number = req.user.user_id;
+    const validations = rentalsFilterSchema.safeParse({
+        ...req.query,
+        user_id: String(req.user.user_id)
+    });
 
-    const result = await getMyRentalsService(user_id);
+    if (!validations.success) {
+        return sendError(
+            res, 400, 'Invalid query parameters',
+            validations.error.issues
+        );
+    }
+
+    const result = await getMyRentalsService(validations.data);
 
     return res.status(200).json(result);
 }

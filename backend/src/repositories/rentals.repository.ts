@@ -1,8 +1,67 @@
 import type { PoolClient } from 'pg';
 import pool from '../db/database.js';
-import type { NewRentalRecord, UpdateRentalData } from '../schemas/rentals.schema.js';
+import type { NewRentalRecord, UpdateRentalData, RentalsFilter } from '../schemas/rentals.schema.js';
+import { fi } from 'zod/locales';
 
-export async function getRentals(limit: number, offset: number) {
+export async function getRentals(filters: RentalsFilter) {
+    const conditions: string[] = [];
+    const values: (string | number | string[])[] = [];
+
+    function addFilter(column: string, value?: string | number) {
+        if (value === undefined) return;
+
+        values.push(value);
+        conditions.push(`${column} = $${values.length}`)
+    }
+
+    addFilter('r.rental_id', filters.rental_id);
+    addFilter('r.car_id', filters.car_id);
+    addFilter('r.user_id', filters.user_id);
+
+    if (filters.status !== undefined) {
+        values.push(filters.status);
+        conditions.push(`rs.code = ANY($${values.length}::text[])`)
+    }
+
+    if (filters.date_from !== undefined) {
+        values.push(filters.date_from);
+        conditions.push(`r.end_date >= $${values.length}::date`)
+    }
+
+    if (filters.date_to !== undefined) {
+        values.push(filters.date_to);
+        conditions.push(`r.start_date <= $${values.length}::date`)
+    }
+
+    if (filters.search !== undefined) {
+        values.push(`%${filters.search}%`);
+
+        const param = `$${values.length}`;
+
+        conditions.push(`(
+            CONCAT_WS(' ', c.brand, c.model) ILIKE ${param}
+            OR c.license_plate ILIKE ${param}
+            OR CONCAT_WS(' ', u.name, u.surname) ILIKE ${param}
+            OR CONCAT_WS(' ', u.surname, u.name) ILIKE ${param}
+            OR u.email ILIKE ${param}
+            OR u.phone ILIKE ${param}
+            OR r.rental_id::text ILIKE ${param}
+        )`);
+    }
+
+    const whereClause = conditions.length > 0
+        ? `WHERE ${conditions.join(' AND ')}`
+        : '';
+
+    const limitParams = values.length + 1;
+    const offsetParams = values.length + 2;
+
+    const paginationValues = [
+        ...values,
+        filters.limit,
+        filters.offset
+    ];
+
     const client = await pool.connect();
 
     try {
@@ -36,15 +95,20 @@ export async function getRentals(limit: number, offset: number) {
             JOIN rental_statuses AS rs ON r.status_id = rs.status_id
             JOIN users AS u ON r.user_id = u.user_id
             JOIN roles AS rl ON u.role_id = rl.role_id
+            ${whereClause}
             ORDER BY rental_id DESC
-            LIMIT $1 OFFSET $2
-        `, [limit, offset]);
+            LIMIT $${limitParams} OFFSET $${offsetParams}
+        `, paginationValues);
 
         const countResult = await client.query(`
             SELECT
                 COUNT(*) AS total
-            FROM rentals 
-        `);
+            FROM rentals AS r
+            JOIN rental_statuses AS rs ON r.status_id = rs.status_id
+            JOIN users AS u ON r.user_id = u.user_id
+            JOIN cars AS c ON r.car_id = c.car_id
+            ${whereClause}
+        `, values);
 
         return {
             rentals: rentalsResult.rows,
@@ -53,35 +117,6 @@ export async function getRentals(limit: number, offset: number) {
     } finally {
         client.release();
     }
-}
-
-export async function getMyRentals(user_id: number) {
-    const query = `
-        SELECT 
-            r.rental_id,
-            r.start_date,
-            r.end_date,
-            r.created_at,
-            r.total_price,
-            rs.name AS status_name,
-            rs.code AS status_code,
-            r.hold_expires_at,
-            json_build_object(
-                'car_id', c.car_id,
-                'license_plate', c.license_plate,
-                'brand', c.brand,
-                'model', c.model,
-                'year', c.year
-            ) as car
-        FROM rentals AS r
-        JOIN cars AS c ON r.car_id = c.car_id
-        JOIN rental_statuses AS rs ON r.status_id = rs.status_id
-        WHERE user_id = $1
-    `
-
-    const result = await pool.query(query, [user_id]);
-
-    return result.rows;
 }
 
 export async function getRentalById(rental_id: number, user_id?: number) {

@@ -104,6 +104,33 @@ const rentalFields = {
     total_price: { type: 'integer', minimum: 0 }
 };
 
+const rentalQueryParameters = [
+    query('rental_id', positiveId, 'ID аренды'),
+    query('car_id', positiveId, 'ID автомобиля'),
+    query('status', {
+        type: 'string',
+        example: 'pending,confirmed'
+    }, 'Один или несколько статусов через запятую'),
+    query('date_from', date, 'Начало периода поиска'),
+    query('date_to', date, 'Конец периода поиска'),
+    query('search', {
+        type: 'string',
+        minLength: 1,
+        maxLength: 100
+    }, 'Поиск по автомобилю, пользователю и ID аренды'),
+    query('limit', {
+        type: 'integer',
+        minimum: 1,
+        maximum: 100,
+        default: 50
+    }),
+    query('offset', {
+        type: 'integer',
+        minimum: 0,
+        default: 0
+    })
+];
+
 export const openapiDocument = {
     openapi: '3.0.3',
     info: {
@@ -301,7 +328,7 @@ export const openapiDocument = {
                     query('transmission_id', positiveId), query('fuel_type_id', positiveId),
                     query('seats', { type: 'integer', minimum: 2, maximum: 9 }),
                     query('doors', { type: 'integer', minimum: 2, maximum: 6 }),
-                    query('limit', {type: 'integer', minimum: 1, maximum: 100, default: 20 }),
+                    query('limit', { type: 'integer', minimum: 1, maximum: 100, default: 20 }),
                     query('offset', { type: 'integer', minimum: 0, default: 0 })
                 ], response: schemaRef('CarList'), errors: [400]
             }),
@@ -355,11 +382,16 @@ export const openapiDocument = {
         },
         '/rentals': {
             get: endpoint({
-                tag: 'Rentals', summary: 'Все аренды с пагинацией (manager/admin)',
-                security: 'cookieAuth', parameters: [
-                    query('limit', { type: 'integer', minimum: 1, maximum: 100, default: 50 }),
-                    query('offset', { type: 'integer', minimum: 0, default: 0 })
-                ], response: schemaRef('RentalList'), errors: [400, 401, 403]
+                tag: 'Rentals',
+                summary: 'Все аренды с фильтрацией и пагинацией (manager/admin)',
+                description: 'Фильтрация по датам учитывает пересечение периодов аренды. Сортировка по убыванию ID.',
+                security: 'cookieAuth',
+                parameters: [
+                    ...rentalQueryParameters,
+                    query('user_id', positiveId, 'ID пользователя')
+                ],
+                response: schemaRef('RentalList'),
+                errors: [400, 401, 403]
             }),
             post: endpoint({
                 tag: 'Rentals', summary: 'Создать заявку на аренду', security: 'cookieAuth',
@@ -370,8 +402,13 @@ export const openapiDocument = {
         },
         '/rentals/my': {
             get: endpoint({
-                tag: 'Rentals', summary: 'Мои аренды', security: 'cookieAuth',
-                response: arrayOf(schemaRef('Rental')), errors: [401]
+                tag: 'Rentals',
+                summary: 'Мои аренды с фильтрацией и пагинацией',
+                description: 'Возвращает только аренды авторизованного пользователя. Переданный user_id игнорируется.',
+                security: 'cookieAuth',
+                parameters: rentalQueryParameters,
+                response: schemaRef('RentalList'),
+                errors: [400, 401]
             })
         },
         '/rentals/{id}': {
