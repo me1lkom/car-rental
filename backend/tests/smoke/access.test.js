@@ -51,7 +51,8 @@ describe('Авторизация и защищённые маршруты', () =
 
         const response = await agent.get('/rentals/my');
 
-        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body.items)).toBe(true);
+        expect(response.body.pagination).toBeDefined();
         expect(Array.isArray(response.body)).toBe(true);
     });
 

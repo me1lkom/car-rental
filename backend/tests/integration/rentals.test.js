@@ -17,6 +17,9 @@ if (!BASE_URL) {
 let userId;
 let clientCookie;
 
+let adminId;
+let adminCookie;
+
 const createdCarIds = [];
 
 function dateInDays(days) {
@@ -31,11 +34,44 @@ async function prepareCar() {
     return car;
 }
 
+async function prepareRental(carId, startDays, endDays, status = 'pending', ownerId = userId) {
+    const result = await db.query(`
+        INSERT INTO rentals (
+            user_id,
+            car_id,
+            start_date,
+            end_date,
+            total_price,
+            status_id
+        )
+        VALUES (
+            $1, $2, $3, $4, $5,
+            (SELECT status_id FROM rental_statuses WHERE code = $6)
+        )
+        RETURNING rental_id
+    `, [
+        ownerId,
+        carId,
+        dateInDays(startDays),
+        dateInDays(endDays),
+        (endDays - startDays + 1) * 3000,
+        status
+    ]);
+
+    return result.rows[0].rental_id;
+}
+
+
 beforeAll(async () => {
     const user = await createTestUser('client');
 
     userId = user.user_id;
     clientCookie = await createTestAccessCookie(userId);
+
+    const admin = await createTestUser('admin');
+
+    adminId = admin.user_id;
+    adminCookie = await createTestAccessCookie(adminId);
 });
 
 afterAll(async () => {
@@ -52,15 +88,17 @@ afterAll(async () => {
             );
         }
 
-        if (userId !== undefined) {
+        for (const id of [userId, adminId]) {
+            if (id === undefined) continue;
+
             await db.query(
                 'DELETE FROM refresh_sessions WHERE user_id = $1',
-                [userId]
+                [id]
             );
 
             await db.query(
                 'DELETE FROM users WHERE user_id = $1',
-                [userId]
+                [id]
             );
         }
     } finally {
@@ -205,3 +243,171 @@ describe('POST /rentals', () => {
     });
 
 });
+
+describe('GET /rentals', () => {
+    let car;
+    let firstRentalId;
+    let secondRentalId;
+    let thirdRentalId;
+
+    beforeAll(async () => {
+        car = await prepareCar();
+
+        firstRentalId = await prepareRental(
+            car.car_id, 10, 12, 'pending'
+        );
+
+        secondRentalId = await prepareRental(
+            car.car_id, 20, 22, 'confirmed'
+        );
+
+        thirdRentalId = await prepareRental(
+            car.car_id, 30, 32, 'cancelled'
+        );
+    });
+
+    test('Пагинация с учётом фильтра по автомобилю', async () => {
+        const response = await request(BASE_URL)
+            .get('/rentals')
+            .set('Cookie', adminCookie)
+            .query({
+                car_id: car.car_id,
+                limit: 2,
+                offset: 0
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toHaveLength(2);
+
+        expect(response.body.pagination).toEqual({
+            total: 3,
+            limit: 2,
+            offset: 0,
+            has_more: true
+        });
+
+        expect(response.body.items.map(rental => rental.rental_id))
+            .toEqual([thirdRentalId, secondRentalId]);
+    });
+
+    test('Получение последней страницы аренд', async () => {
+        const response = await request(BASE_URL)
+            .get('/rentals')
+            .set('Cookie', adminCookie)
+            .query({
+                car_id: car.car_id,
+                limit: 2,
+                offset: 2
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toHaveLength(1);
+
+        expect(response.body.pagination).toEqual({
+            total: 3,
+            limit: 2,
+            offset: 2,
+            has_more: false
+        });
+
+        expect(response.body.items[0].rental_id)
+            .toBe(firstRentalId);
+    });
+
+    test('Фильтрация по ID аренды', async () => {
+        const response = await request(BASE_URL)
+            .get('/rentals')
+            .set('Cookie', adminCookie)
+            .query({
+                rental_id: secondRentalId
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toHaveLength(1);
+        expect(response.body.pagination.total).toBe(1);
+
+        expect(response.body.items[0].rental_id)
+            .toBe(secondRentalId);
+    });
+
+    test('Фильтрация по нескольким статусам', async () => {
+        const response = await request(BASE_URL)
+            .get('/rentals')
+            .set('Cookie', adminCookie)
+            .query({
+                car_id: car.car_id,
+                status: 'pending,confirmed'
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toHaveLength(2);
+        expect(response.body.pagination.total).toBe(2);
+
+        expect(response.body.items.map(rental => rental.rental_id))
+            .toEqual([secondRentalId, firstRentalId]);
+    });
+
+    test('Фильтрация по пересечению дат аренды', async () => {
+        const response = await request(BASE_URL)
+            .get('/rentals')
+            .set('Cookie', adminCookie)
+            .query({
+                car_id: car.car_id,
+                date_from: dateInDays(11),
+                date_to: dateInDays(21)
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toHaveLength(2);
+        expect(response.body.pagination.total).toBe(2);
+
+        expect(response.body.items.map(rental => rental.rental_id))
+            .toEqual([secondRentalId, firstRentalId]);
+    });
+
+    test('Получение собственных аренд с пагинацией', async () => {
+        const response = await request(BASE_URL)
+            .get('/rentals/my')
+            .set('Cookie', clientCookie)
+            .query({
+                car_id: car.car_id,
+                limit: 2,
+                offset: 0
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toHaveLength(2);
+
+        expect(response.body.pagination).toEqual({
+            total: 3,
+            limit: 2,
+            offset: 0,
+            has_more: true
+        });
+
+        expect(response.body.items.map(rental => rental.rental_id))
+            .toEqual([thirdRentalId, secondRentalId]);
+    });
+
+    test('Клиент не может получить чужие аренды', async () => {
+        const foreignCar = await prepareCar();
+
+        const foreignRentalId = await prepareRental(
+            foreignCar.car_id, 40, 42, 'confirmed', adminId
+        );
+
+        const response = await request(BASE_URL)
+            .get('/rentals/my')
+            .set('Cookie', clientCookie)
+            .query({
+                user_id: adminId,
+                rental_id: foreignRentalId,
+                search: foreignCar.brand
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toHaveLength(0);
+        expect(response.body.pagination.total).toBe(0);
+    });
+});
+
