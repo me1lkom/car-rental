@@ -8,14 +8,23 @@ import {
     unblockUser as unblockUserService,
     changeUserPassword as changeUserPasswordService
 } from '../services/users.service.js'
-import { createUserSchema, updateUserSchema, passwordChangeSchema } from "../schemas/users.schema.js";
+import { createUserSchema, updateUserSchema, passwordChangeSchema, usersFilterSchema } from "../schemas/users.schema.js";
 import { sendError } from '../middleware/error-handler.js';
 import { checkId } from "../utils/check-id.js";
 
 export async function getUsers(req: Request, res: Response) {
-    const users = await getUserService();
+    const validation = usersFilterSchema.safeParse(req.query);
 
-    res.status(200).json(users)
+    if (!validation.success) {
+        return sendError(
+            res, 400, 'Invalid query parameters',
+            validation.error.issues
+        );
+    }
+
+    const result = await getUserService(validation.data);
+
+    return res.status(200).json(result);
 }
 
 export async function createUser(req: Request, res: Response) {
