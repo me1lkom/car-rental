@@ -71,9 +71,29 @@ export const carsFilterSchema = z.object({
 
     search: z.string().trim().min(1).max(100).optional(),
 
+    date_from: z.iso.date().optional(),
+    date_to: z.iso.date().optional(),
+
     deleted: z.enum(['true', 'false'])
         .transform(value => value === 'true')
         .optional(),
-});
+}).refine(
+    data =>
+        (data.date_from === undefined) ===
+        (data.date_to === undefined),
+    {
+        message: 'Both dates must be provided',
+        path: ['date_to']
+    }
+).refine(
+    data =>
+        !data.date_from ||
+        !data.date_to ||
+        data.date_from <= data.date_to,
+    {
+        message: 'Invalid date range',
+        path: ['date_to']
+    }
+);
 
 export type CarsFilter = z.infer<typeof carsFilterSchema>;
