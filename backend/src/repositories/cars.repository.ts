@@ -49,6 +49,38 @@ export async function findCars(filters: CarsFilter) {
     )`);
     }
 
+    if (
+        filters.date_from !== undefined &&
+        filters.date_to !== undefined
+    ) {
+        values.push(filters.date_from);
+        const dateFromParam = `$${values.length}`;
+
+        values.push(filters.date_to);
+        const dateToParam = `$${values.length}`;
+
+        conditions.push(`
+            NOT EXISTS(
+                SELECT 1
+                FROM rentals AS r
+                JOIN rental_statuses AS rs
+                    ON r.status_id = rs.status_id
+                WHERE r.car_id = c.car_id
+                    AND r.start_date - 1 <= ${dateToParam}::date
+                    AND r.end_date + 1 >= ${dateFromParam}::date
+                    AND (
+                        rs.code IN ('pending', 'confirmed', 'active')
+                        OR (
+                            rs.code = 'pending_payment'
+                            AND r.hold_expires_at > NOW()
+                        )
+                    )
+            )
+        `);
+
+        conditions.push(`c.status = 'available'`);
+    }
+
     const whereClause = conditions.length > 0
         ? `WHERE ${conditions.join(' AND ')}`
         : '';

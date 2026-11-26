@@ -151,6 +151,8 @@ const carQueryParameters = [
     query('search', {
         type: 'string', minLength: 1, maxLength: 100
     }, 'Поиск по марке, модели, госномеру, году и ID'),
+    query('date_from', date, 'Дата начала аренды'),
+    query('date_to', date, 'Дата окончания аренды'),
     query('limit', {
         type: 'integer', minimum: 1, maximum: 100, default: 20
     }),
@@ -389,7 +391,7 @@ export const openapiDocument = {
             get: endpoint({
                 tag: 'Cars',
                 summary: 'Каталог автомобилей',
-                description: 'Возвращает только неудалённые автомобили.',
+                description: 'Возвращает только неудалённые автомобили. При передаче date_from и date_to возвращает автомобили, доступные на весь указанный период с учётом буфера между арендами.',
                 parameters: carQueryParameters,
                 response: schemaRef('CarList'),
                 errors: [400]

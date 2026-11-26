@@ -36,6 +36,7 @@ beforeAll(async () => {
 afterAll(async () => {
     try {
         for (const id of createdCarIds) {
+            await db.query('DELETE FROM rentals WHERE car_id = $1', [id]);
             await db.query('DELETE FROM cars WHERE car_id = $1', [id]);
         }
 
@@ -54,6 +55,29 @@ afterAll(async () => {
         await db.end();
     }
 });
+
+async function prepareRental(carId, startDate, endDate, status) {
+    await db.query(`
+        INSERT INTO rentals (
+            user_id,
+            car_id,
+            start_date,
+            end_date,
+            total_price,
+            status_id
+        )
+        VALUES (
+            $1, $2, $3, $4, 9000,
+            (SELECT status_id FROM rental_statuses WHERE code = $5)
+        )
+    `, [
+        adminId,
+        carId,
+        startDate,
+        endDate,
+        status
+    ]);
+}
 
 describe('Cars API', () => {
 
@@ -297,5 +321,73 @@ describe('Cars API', () => {
             .get(`/cars/${car.car_id}/admin`);
 
         expect(detail.status).toBe(401);
+    });
+
+    test('GET /cars — поиск свободных автомобилей по датам', async () => {
+        const freeCar = await prepareCar();
+        const busyCar = await prepareCar();
+        const cancelledCar = await prepareCar();
+        const bufferCar = await prepareCar();
+
+        await db.query(`
+            UPDATE cars
+            SET brand = $1
+            WHERE car_id = ANY($2::int[])
+        `, [
+            freeCar.brand,
+            [
+                busyCar.car_id,
+                cancelledCar.car_id,
+                bufferCar.car_id
+            ]
+        ]);
+
+        await prepareRental(
+            busyCar.car_id,
+            '2027-12-12', '2027-12-14', 'confirmed'
+        );
+
+        await prepareRental(
+            busyCar.car_id,
+            '2027-12-20', '2027-12-22', 'confirmed'
+        );
+
+        await prepareRental(
+            cancelledCar.car_id,
+            '2027-12-12', '2027-12-14', 'cancelled'
+        );
+
+        await prepareRental(
+            cancelledCar.car_id,
+            '2027-12-20', '2027-12-22', 'confirmed'
+        );
+
+        await prepareRental(
+            bufferCar.car_id,
+            '2027-12-06', '2027-12-09', 'confirmed'
+        );
+
+        const response = await request(BASE_URL)
+            .get('/cars')
+            .query({
+                brand: freeCar.brand,
+                date_from: '2027-12-10',
+                date_to: '2027-12-15'
+            });
+
+        expect(response.status).toBe(200);
+
+        expect(response.body.items.map(car => car.car_id))
+            .toEqual([
+                freeCar.car_id,
+                cancelledCar.car_id
+            ]);
+
+        expect(response.body.pagination).toEqual({
+            total: 2,
+            limit: 20,
+            offset: 0,
+            has_more: false
+        });
     });
 });
