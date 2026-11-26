@@ -53,7 +53,9 @@ describe('Авторизация и защищённые маршруты', () =
 
         expect(Array.isArray(response.body.items)).toBe(true);
         expect(response.body.pagination).toBeDefined();
-        expect(Array.isArray(response.body)).toBe(true);
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body.items)).toBe(true);
+        expect(response.body.pagination).toBeDefined();
     });
 
     test('GET /users — проверка отказа в доступе', async ({ skip }) => {
