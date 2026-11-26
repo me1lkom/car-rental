@@ -25,24 +25,24 @@ export function Home() {
   }, [])
 
   useEffect(() => {
-  setLoading(true)
-  setError("")
-  const query = new URLSearchParams()
-  Object.entries(filter).forEach(([key, value]) => {
-    if (value) query.set(key, value)
-  })
-  api(query.toString() ? "/cars?" + query : "/cars")
-    .then((data) => {
-      const list = data?.items || []
-      setCars(list)
-      setLoading(false)
+    setLoading(true)
+    setError("")
+    const query = new URLSearchParams()
+    Object.entries(filter).forEach(([key, value]) => {
+      if (value) query.set(key, value)
     })
-    .catch(() => {
-      setError("Каталог временно недоступен. Проверьте, что сервер запущен.")
-      setCars([])
-      setLoading(false)
-    })
-}, [filter])
+    api(query.toString() ? "/cars?" + query : "/cars")
+      .then((data) => {
+        const list = data?.items || []
+        setCars(list)
+        setLoading(false)
+      })
+      .catch(() => {
+        setError("Каталог временно недоступен. Проверьте, что сервер запущен.")
+        setCars([])
+        setLoading(false)
+      })
+  }, [filter])
 
   function pickClass(name) {
     setTab(name)
@@ -76,41 +76,96 @@ export function Home() {
           <img className="search-photo" src="/photos/eclass.jpg" alt="Автомобиль VELA" />
         </section>
 
-        <div className="tabs">
-          {tabs.map(([value, label]) => (
-            <button key={label} className={tab === value ? "tab on" : "tab"} onClick={() => pickClass(value)}>{label}</button>
-          ))}
-        </div>
+        <div className="catalog-layout">
+          <aside className="filters-side">
+            <h3>Фильтры</h3>
 
-        <div className="section-head">
-          <p className="spec">{!loading && !error ? "Найдено " + cars.length + " автомобилей" : ""}</p>
-          <div className="filters">
-            <select name="body_type_id" value={filter.body_type_id} onChange={change}>
-              <option value="">Кузов</option>
-              {attrs?.body_types?.map((item) => <option key={item.body_type_id} value={item.body_type_id}>{item.name}</option>)}
-            </select>
-            <input name="brand" value={filter.brand} onChange={change} placeholder="Марка" />
+            <div className="filter-group">
+              <p className="spec">Кузов</p>
+              <div className="filter-buttons">
+                <button
+                  className={!filter.body_type_id ? "filter-btn on" : "filter-btn"}
+                  onClick={() => setFilter(f => ({ ...f, body_type_id: "" }))}
+                >
+                  Все
+                </button>
+                {attrs?.body_types?.map((item) => (
+                  <button
+                    key={item.body_type_id}
+                    className={filter.body_type_id == item.body_type_id ? "filter-btn on" : "filter-btn"}
+                    onClick={() => setFilter(f => ({ ...f, body_type_id: String(item.body_type_id) }))}
+                  >
+                    {item.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="filter-group">
+              <p className="spec">Марка</p>
+              <input
+                name="brand"
+                value={filter.brand}
+                onChange={change}
+                placeholder="Например, Toyota"
+              />
+              <div className="filter-buttons popular">
+                {["Toyota", "BMW", "Mercedes", "Kia", "Hyundai"].map((brand) => (
+                  <button
+                    key={brand}
+                    className={filter.brand === brand ? "filter-btn on" : "filter-btn"}
+                    onClick={() => setFilter(f => ({ ...f, brand }))}
+                  >
+                    {brand}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              className="btn-ghost"
+              disabled={!filter.body_type_id && !filter.brand && !filter.rental_class_id}
+              onClick={() => setFilter({ rental_class_id: "", body_type_id: "", brand: "" })}
+            >
+              Сбросить фильтры
+            </button>
+          </aside>
+
+          <div className="catalog-right">
+            <div className="tabs-row">
+              <div className="tabs">
+                {tabs.map(([value, label]) => (
+                  <button key={label} className={tab === value ? "tab on" : "tab"} onClick={() => pickClass(value)}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="spec">{!loading && !error ? "Найдено " + cars.length + " автомобилей" : ""}</p>
+            </div>
+
+            <div className="catalog-main">
+
+              {loading && <article className="panel"><p>Загрузка каталога…</p></article>}
+              {error && (
+                <article className="panel">
+                  <h2>Ошибка сервера</h2>
+                  <p className="error">{error}</p>
+                </article>
+              )}
+              {!loading && !error && cars.length === 0 && (
+                <article className="panel">
+                  <h2>Машин не найдено</h2>
+                  <p className="lead">По этому фильтру ничего нет. Сбросьте фильтры или выберите другой класс.</p>
+                </article>
+              )}
+              {!loading && !error && (
+                <section id="fleet" className="fleet">
+                  {cars.map((car) => <CarCard key={car.car_id} car={car} />)}
+                </section>
+              )}
+            </div>
           </div>
         </div>
-
-        {loading && <article className="panel"><p>Загрузка каталога…</p></article>}
-        {error && (
-          <article className="panel">
-            <h2>Ошибка сервера</h2>
-            <p className="error">{error}</p>
-          </article>
-        )}
-        {!loading && !error && cars.length === 0 && (
-          <article className="panel">
-            <h2>Машин не найдено</h2>
-            <p className="lead">По этому фильтру ничего нет. Сбросьте фильтры или выберите другой класс.</p>
-          </article>
-        )}
-        {!loading && !error && (
-          <section id="fleet" className="fleet">
-            {cars.map((car) => <CarCard key={car.car_id} car={car} />)}
-          </section>
-        )}
       </main>
     </>
   )
