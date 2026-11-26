@@ -29,7 +29,7 @@ describe('Каталог и фильтрация', () => {
   it('загружает и показывает машины из каталога', async () => {
     api.mockImplementation((url) => {
       if (url.includes('car-attributes')) return Promise.resolve({ rental_classes: [], body_types: [] })
-      if (url.includes('/cars')) return Promise.resolve(mockCars)
+      if (url.includes('/cars')) return Promise.resolve({ items: mockCars })
       return Promise.resolve([])
     })
     render(<MemoryRouter><Home /></MemoryRouter>)
@@ -39,7 +39,7 @@ describe('Каталог и фильтрация', () => {
   })
 
   it('показывает сообщение если машин не найдено', async () => {
-    api.mockResolvedValue([])
+    api.mockResolvedValue({ items: [] })
     render(<MemoryRouter><Home /></MemoryRouter>)
     await waitFor(() => {
       expect(screen.getByText(/Машин не найдено/i)).toBeInTheDocument()
@@ -50,7 +50,8 @@ describe('Каталог и фильтрация', () => {
     api.mockRejectedValue(new Error('network'))
     render(<MemoryRouter><Home /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText(/Машин не найдено|Каталог/i)).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /Ошибка сервера/i })).toBeInTheDocument()
+      expect(screen.getByText(/Каталог временно недоступен/i)).toBeInTheDocument()
     })
   })
 })
